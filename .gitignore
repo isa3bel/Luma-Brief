@@ -1,0 +1,5 @@
+# Workspace-wide dependency installs
+node_modules/
+
+# macOS
+.DS_Store

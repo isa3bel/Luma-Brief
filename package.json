@@ -1,0 +1,19 @@
+{
+  "name": "tech-event-dashboard",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:app": "pnpm --filter app start",
+    "dev:web": "pnpm --filter app web",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:diff": "supabase db diff",
+    "functions:serve": "supabase functions serve"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}
