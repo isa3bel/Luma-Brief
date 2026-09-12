@@ -5,14 +5,24 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 
 import { Colors, Radius, StatusColors, StatusLabel } from '@/constants/design';
 import { formatEventDateTime } from '@/features/events/format';
-import { useEvent, useUpdateLearnings } from '@/features/events/use-events';
+import { useEvent, useUpdateEventStatus, useUpdateLearnings } from '@/features/events/use-events';
+import type { EventStatus } from '@/features/events/types';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
+
+// Statuses that actually show up on the Calendar (see CALENDAR_STATUSES in
+// dashboard/index.tsx) — the only ones where "remove from the calendar"
+// means anything. Removing sets status to did_not_go rather than back to
+// unresolved: the user is correcting a fact ("I didn't actually go"), not
+// asking to re-swipe, and did_not_go is exactly what already makes an
+// event disappear from both the calendar and the swipe deck.
+const REMOVABLE_STATUSES = new Set<EventStatus>(['went', 'going', 'pending']);
 
 export default function EventDetail() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const router = useRouter();
   const { data: event, isLoading } = useEvent(eventId);
   const updateLearnings = useUpdateLearnings();
+  const updateStatus = useUpdateEventStatus();
 
   const [learnings, setLearnings] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -65,10 +75,25 @@ export default function EventDetail() {
 
       <View style={styles.header}>
         <Text style={styles.title}>{event.title}</Text>
-        <View style={[styles.statusPill, { backgroundColor: StatusColors[event.status].bg }]}>
-          <Text style={[styles.statusText, { color: StatusColors[event.status].text }]}>
-            {StatusLabel[event.status] ?? event.status}
-          </Text>
+        <View style={styles.statusGroup}>
+          <View style={[styles.statusPill, { backgroundColor: StatusColors[event.status].bg }]}>
+            <Text style={[styles.statusText, { color: StatusColors[event.status].text }]}>
+              {StatusLabel[event.status] ?? event.status}
+            </Text>
+          </View>
+          {REMOVABLE_STATUSES.has(event.status) ? (
+            <Pressable
+              onPress={() => {
+                updateStatus.mutate(
+                  { id: event.id, status: 'did_not_go' },
+                  { onSuccess: () => router.back() }
+                );
+              }}
+              disabled={updateStatus.isPending}
+              style={[styles.removeButton, updateStatus.isPending && styles.removeButtonDisabled]}>
+              <Text style={styles.removeButtonText}>Remove</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
@@ -179,8 +204,18 @@ const styles = StyleSheet.create({
   backText: { color: Colors.accent, fontWeight: '600' },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   title: { fontSize: 24, fontWeight: '700', flex: 1, color: Colors.text },
+  statusGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusPill: { borderRadius: Radius.pill, paddingVertical: 4, paddingHorizontal: 10 },
   statusText: { fontSize: 12, fontWeight: '700' },
+  removeButton: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.danger,
+    borderRadius: Radius.pill,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  removeButtonDisabled: { opacity: 0.5 },
+  removeButtonText: { fontSize: 12, fontWeight: '700', color: Colors.danger },
   metaBlock: { gap: 8 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   metaText: { fontSize: 14, color: Colors.text, flexShrink: 1 },
