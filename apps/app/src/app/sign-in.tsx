@@ -46,21 +46,17 @@ export default function SignIn() {
     <View style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>Sign in</Text>
-        <Text style={styles.subtitle}>We&apos;ll email you a magic link — no password needed.</Text>
+        <Text style={styles.subtitle}>We&apos;ll email you a 6-digit code — no password needed.</Text>
         {isMockMode ? (
           <Text style={styles.mockNotice}>
             No Supabase project connected yet — this will sign you in with mock data instead of a
-            real email link.
+            real email code.
           </Text>
         ) : null}
 
         {status === 'sent' ? (
           <>
-            <Text style={styles.sent}>Check {email} for a sign-in link.</Text>
-            <Text style={styles.codeExplainer}>
-              On a device where that link can&apos;t open the app (like Expo Go), enter the 6-digit
-              code from the same email instead:
-            </Text>
+            <Text style={styles.sent}>Enter the 6-digit code we sent to {email}:</Text>
             <TextInput
               value={code}
               onChangeText={setCode}
@@ -99,7 +95,7 @@ export default function SignIn() {
               onPress={handleSubmit}
               disabled={status === 'sending' || !email.includes('@')}
               style={[styles.cta, (status === 'sending' || !email.includes('@')) && styles.ctaDisabled]}>
-              <Text style={styles.ctaText}>{status === 'sending' ? 'Sending…' : 'Send magic link'}</Text>
+              <Text style={styles.ctaText}>{status === 'sending' ? 'Sending…' : 'Send code'}</Text>
             </Pressable>
           </>
         )}
@@ -127,7 +123,6 @@ const styles = StyleSheet.create({
   ctaText: { color: Colors.surface, fontSize: 16, fontWeight: '600' },
   error: { color: Colors.danger, fontSize: 13 },
   sent: { fontSize: 15, lineHeight: 22, color: Colors.text },
-  codeExplainer: { fontSize: 13, lineHeight: 18, color: Colors.textSecondary, marginTop: 4 },
   secondaryCta: {
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.accent,
