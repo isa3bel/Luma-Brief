@@ -23,7 +23,7 @@ export default function Landing() {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        <Text style={styles.title}>Luma Brief</Text>
+        <Text style={styles.title}>LumaBrief</Text>
         <Text style={styles.subtitle}>
           One place to remember every SF tech event you go to, what you learned there, and who you
           met — pulled together from Luma and LinkedIn so nothing falls through the cracks.

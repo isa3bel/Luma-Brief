@@ -1,4 +1,4 @@
-# Luma Brief — Build Plan
+# LumaBrief — Build Plan
 
 ## Context
 

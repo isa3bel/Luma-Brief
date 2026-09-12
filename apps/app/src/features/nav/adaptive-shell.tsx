@@ -68,7 +68,7 @@ function TopBar() {
       style={styles.topBar}>
       <View style={styles.topBarBrand}>
         <MaterialIcons name="auto-awesome" size={20} color={Colors.accent} />
-        <Text style={styles.topBarBrandText}>Luma Brief</Text>
+        <Text style={styles.topBarBrandText}>LumaBrief</Text>
       </View>
       <View style={styles.topBarLinks}>
         {navItems.map((item) => (

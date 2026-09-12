@@ -1,4 +1,4 @@
-# Luma Brief
+# LumaBrief
 
 Track the SF tech events you go to, what you learned there, and who you met — pulled together from
 Luma and LinkedIn. See [Tech Dashboard PRD.md](./Tech%20Dashboard%20PRD.md) for the product spec, and
