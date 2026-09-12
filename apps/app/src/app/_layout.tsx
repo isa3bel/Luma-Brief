@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/design';
 import { AuthProvider } from '@/features/auth/auth-context';
@@ -41,22 +42,31 @@ export default function RootLayout() {
   if (!iconsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          {/* Pinned to the light theme regardless of the device/browser's
-              color scheme: every screen's colors (card backgrounds, text)
-              are hand-picked for a light background and none of it has a
-              dark counterpart yet. Following the system scheme here (as
-              Expo's template does by default) would flip React
-              Navigation's screen container to a dark background while the
-              content stayed styled for light — unreadable dark-on-dark.
-              Revisit once a real dark palette is designed. */}
-          <ThemeProvider value={AppTheme}>
-            <Stack screenOptions={{ headerShown: false }} />
-          </ThemeProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </GestureHandlerRootView>
+    // Outermost — useSafeAreaInsets() (AdaptiveShell's top bar/bottom tabs,
+    // to avoid the notch/Dynamic Island and home-indicator area) only
+    // resolves real values with this above it in the tree. Its absence was
+    // a real bug: the package was already a dependency (pulled in
+    // transitively by expo-router/react-navigation) but never actually
+    // wired up, so every native screen's content rendered flush against
+    // the physical screen edges.
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            {/* Pinned to the light theme regardless of the device/browser's
+                color scheme: every screen's colors (card backgrounds, text)
+                are hand-picked for a light background and none of it has a
+                dark counterpart yet. Following the system scheme here (as
+                Expo's template does by default) would flip React
+                Navigation's screen container to a dark background while the
+                content stayed styled for light — unreadable dark-on-dark.
+                Revisit once a real dark palette is designed. */}
+            <ThemeProvider value={AppTheme}>
+              <Stack screenOptions={{ headerShown: false }} />
+            </ThemeProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }

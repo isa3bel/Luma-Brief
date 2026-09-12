@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
 import type { PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets, type EdgeInsets } from 'react-native-safe-area-context';
 
 import { Colors, Radius } from '@/constants/design';
 import { useAuth } from '@/features/auth/auth-context';
@@ -14,14 +15,19 @@ import { navItems } from './nav-items';
 // on Luma's own header — see the reference screenshot), or a bottom tab bar
 // on narrow ones — same config array either way, so adding a future page
 // (per the PRD) is a one-line change to nav-items.ts, not a layout change
-// here.
+// here. Insets are read once here and passed down rather than each of
+// TopBar/BottomTabs/content calling useSafeAreaInsets() independently —
+// only the piece actually touching a physical screen edge in the current
+// layout needs one (TopBar's top, BottomTabs' bottom, or content's top
+// when there's no TopBar at all), so this is also where that gets decided.
 export function AdaptiveShell({ children }: PropsWithChildren) {
   const { isWide } = useBreakpoint();
+  const insets = useSafeAreaInsets();
   return (
     <View style={styles.root}>
-      {isWide ? <TopBar /> : null}
-      <View style={styles.content}>{children}</View>
-      {isWide ? null : <BottomTabs />}
+      {isWide ? <TopBar insets={insets} /> : null}
+      <View style={[styles.content, !isWide && { paddingTop: insets.top }]}>{children}</View>
+      {isWide ? null : <BottomTabs insets={insets} />}
     </View>
   );
 }
@@ -57,15 +63,18 @@ function NavLink({ item, variant }: { item: (typeof navItems)[number]; variant: 
   );
 }
 
-function TopBar() {
+function TopBar({ insets }: { insets: EdgeInsets }) {
   const { signOut } = useAuth();
   return (
     // A soft blue-to-white wash instead of a hard border line (see the
     // reference screenshot) — the bottom color matches Colors.surface so it
-    // fades into the page content beneath with no visible seam.
+    // fades into the page content beneath with no visible seam. Extra top
+    // padding (rather than a taller fixed height) extends the gradient up
+    // through the safe-area inset while keeping the actual bar content the
+    // same visual size on every device.
     <LinearGradient
       colors={[Colors.navGradientTop, Colors.surface]}
-      style={styles.topBar}>
+      style={[styles.topBar, { paddingTop: styles.topBar.paddingVertical + insets.top }]}>
       <View style={styles.topBarBrand}>
         <MaterialIcons name="auto-awesome" size={20} color={Colors.accent} />
         <Text style={styles.topBarBrandText}>LumaBrief</Text>
@@ -83,10 +92,15 @@ function TopBar() {
   );
 }
 
-function BottomTabs() {
+function BottomTabs({ insets }: { insets: EdgeInsets }) {
   const { signOut } = useAuth();
   return (
-    <View style={styles.bottomTabs}>
+    // Extra bottom padding for the home-indicator area on notched devices
+    // — without it the tab bar sits flush against (and visually gets
+    // clipped by) that gesture area. Math.max keeps the original 8px
+    // padding as a floor on devices with no inset at all (e.g. Android
+    // gesture nav off, older iPhones with a physical home button).
+    <View style={[styles.bottomTabs, { paddingBottom: Math.max(styles.bottomTabs.paddingVertical, insets.bottom) }]}>
       {navItems.map((item) => (
         <NavLink key={item.key} item={item} variant="bottomTabs" />
       ))}
@@ -109,7 +123,7 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 60,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     gap: 24,
   },
