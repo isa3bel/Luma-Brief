@@ -6,10 +6,13 @@ import { Colors, Radius } from '@/constants/design';
 import { useAuth } from '@/features/auth/auth-context';
 
 export default function SignIn() {
-  const { session, isMockMode, signInWithMagicLink } = useAuth();
+  const { session, isMockMode, signInWithMagicLink, verifyEmailOtp } = useAuth();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState('');
+  const [codeStatus, setCodeStatus] = useState<'idle' | 'verifying' | 'error'>('idle');
+  const [codeError, setCodeError] = useState<string | null>(null);
 
   if (session) {
     return <Redirect href="/dashboard" />;
@@ -27,6 +30,18 @@ export default function SignIn() {
     }
   };
 
+  const handleVerifyCode = async () => {
+    setCodeStatus('verifying');
+    setCodeError(null);
+    const { error } = await verifyEmailOtp(email.trim(), code.trim());
+    if (error) {
+      setCodeStatus('error');
+      setCodeError(error);
+    }
+    // On success, the session updates via onAuthStateChange and the
+    // `if (session)` redirect above takes over — nothing else to do here.
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -40,7 +55,34 @@ export default function SignIn() {
         ) : null}
 
         {status === 'sent' ? (
-          <Text style={styles.sent}>Check {email} for a sign-in link.</Text>
+          <>
+            <Text style={styles.sent}>Check {email} for a sign-in link.</Text>
+            <Text style={styles.codeExplainer}>
+              On a device where that link can&apos;t open the app (like Expo Go), enter the 6-digit
+              code from the same email instead:
+            </Text>
+            <TextInput
+              value={code}
+              onChangeText={setCode}
+              placeholder="123456"
+              keyboardType="number-pad"
+              autoCapitalize="none"
+              maxLength={6}
+              style={styles.input}
+            />
+            {codeError ? <Text style={styles.error}>{codeError}</Text> : null}
+            <Pressable
+              onPress={handleVerifyCode}
+              disabled={codeStatus === 'verifying' || code.trim().length < 6}
+              style={[
+                styles.secondaryCta,
+                (codeStatus === 'verifying' || code.trim().length < 6) && styles.ctaDisabled,
+              ]}>
+              <Text style={styles.secondaryCtaText}>
+                {codeStatus === 'verifying' ? 'Verifying…' : 'Verify code'}
+              </Text>
+            </Pressable>
+          </>
         ) : (
           <>
             <TextInput
@@ -85,6 +127,15 @@ const styles = StyleSheet.create({
   ctaText: { color: Colors.surface, fontSize: 16, fontWeight: '600' },
   error: { color: Colors.danger, fontSize: 13 },
   sent: { fontSize: 15, lineHeight: 22, color: Colors.text },
+  codeExplainer: { fontSize: 13, lineHeight: 18, color: Colors.textSecondary, marginTop: 4 },
+  secondaryCta: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.accent,
+    paddingVertical: 12,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+  },
+  secondaryCtaText: { color: Colors.accent, fontSize: 16, fontWeight: '600' },
   mockNotice: {
     fontSize: 13,
     lineHeight: 18,

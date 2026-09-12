@@ -17,6 +17,7 @@ type AuthContextValue = {
   isLoading: boolean;
   isMockMode: boolean;
   signInWithMagicLink: (email: string) => Promise<{ error: string | null }>;
+  verifyEmailOtp: (email: string, token: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -126,6 +127,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
           email,
           options: { emailRedirectTo: getRedirectTo() },
         });
+        return { error: error?.message ?? null };
+      },
+      // Fallback to the same email's 6-digit code instead of its link —
+      // the only path that actually works in Expo Go, since its exp://
+      // deep link is dynamic per machine/session and can never be added to
+      // Supabase's redirect allow-list (see getRedirectTo() above). Setting
+      // the session happens inside verifyOtp itself; onAuthStateChange
+      // above picks it up from there, same as the link path does.
+      verifyEmailOtp: async (email: string, token: string) => {
+        if (!isSupabaseConfigured || !supabase) {
+          setSession(createMockSession(email));
+          return { error: null };
+        }
+        const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
         return { error: error?.message ?? null };
       },
       signOut: async () => {
