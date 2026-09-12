@@ -58,3 +58,11 @@ The phased build plan (data model, sync design, extension design, milestones) li
   logged-in-only dashboard. `web.output: "single"` means the exported `dist/` is a true SPA (one
   `index.html`), so a static host needs a catch-all rewrite to `index.html` for client-side routes to
   survive a direct load/refresh — see `apps/app/vercel.json`.
+
+- **Keyboard-avoidance uses `ScrollView`'s `automaticallyAdjustKeyboardInsets`, not
+  `KeyboardAvoidingView`** (`dashboard/[eventId].tsx`'s Learnings textarea). Confirmed on a real
+  iPhone: `KeyboardAvoidingView` alone only uniformly pads the whole screen up once, leaving a
+  growing multiline input to still get cut off with no way to scroll the rest of the way into view.
+  `automaticallyAdjustKeyboardInsets` is iOS-only, so `android.softwareKeyboardLayoutMode: "resize"`
+  in `app.json` is Android's equivalent — untested on a real Android device, since testing so far has
+  only been on iPhone via Expo Go.
