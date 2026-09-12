@@ -2,6 +2,8 @@ import { BlurView } from 'expo-blur';
 import type { PropsWithChildren } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { Colors } from '@/constants/design';
+
 // Gates the calendar section behind a blur until the user has resolved
 // (Went / Did Not Go) every pending past event, per the PRD. BlurView's web
 // fallback approximates backdrop-filter reasonably well in current Expo
@@ -30,5 +32,5 @@ const styles = StyleSheet.create({
   // itself to match without any extra styling.
   container: {},
   overlayContent: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  overlayText: { fontSize: 14, color: '#3a3f42', fontWeight: '600', textAlign: 'center' },
+  overlayText: { fontSize: 14, color: Colors.text, fontWeight: '600', textAlign: 'center' },
 });

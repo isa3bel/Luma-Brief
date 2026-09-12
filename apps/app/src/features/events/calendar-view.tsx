@@ -1,10 +1,12 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+
+import { Colors, Radius, StatusColors, StatusLabel } from '@/constants/design';
+import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 import { formatEventDateTime } from './format';
-import { useBreakpoint } from '@/hooks/use-breakpoint';
 import type { Event, EventStatus } from './types';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -14,17 +16,32 @@ const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 // height without needing to measure text.
 const MAX_VISIBLE_ROWS = 3;
 
+// Only the statuses this calendar ever actually renders (see
+// CALENDAR_STATUSES in dashboard/index.tsx) — a Partial view onto the full
+// StatusColors/StatusLabel maps in @/constants/design.
 const DOT_COLOR: Partial<Record<EventStatus, string>> = {
-  went: '#1a9c53',
-  going: '#0a7ea4',
-  pending: '#c99a02',
+  went: StatusColors.went.bg,
+  going: StatusColors.going.bg,
+  pending: StatusColors.pending.bg,
 };
 
-const STATUS_LABEL: Partial<Record<EventStatus, string>> = {
-  went: 'Went',
-  going: 'Going',
-  pending: 'Pending',
-};
+// Shared between the day picker modal and search results below — same row
+// shape, two different lists it can appear in.
+function EventRow({ event, onPress }: { event: Event; onPress: () => void }) {
+  return (
+    <Pressable style={styles.modalRow} onPress={onPress}>
+      <View style={styles.modalRowMain}>
+        <Text style={styles.modalRowTitle} numberOfLines={1}>
+          {event.title}
+        </Text>
+        <Text style={styles.modalRowMeta}>{formatEventDateTime(event.starts_at)}</Text>
+      </View>
+      <View style={[styles.statusPill, { backgroundColor: DOT_COLOR[event.status] ?? Colors.textSecondary }]}>
+        <Text style={styles.statusPillText}>{StatusLabel[event.status] ?? event.status}</Text>
+      </View>
+    </Pressable>
+  );
+}
 
 function dateKey(date: Date) {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
@@ -65,6 +82,21 @@ export function CalendarView({ events }: { events: Event[] }) {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [dayPicker, setDayPicker] = useState<{ label: string; events: Event[] } | null>(null);
+  const [query, setQuery] = useState('');
+
+  // Matches title or description (the event's own body text from Luma —
+  // not Learnings, which already has its own search surface via the
+  // monthly summary). Non-null only while there's an actual query, so it
+  // doubles as the "are we in search mode" flag below. Sorted most-recent
+  // first — a description search is usually "what was that thing I went
+  // to about X", and recent events are the likeliest hit.
+  const searchResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return null;
+    return events
+      .filter((event) => event.title.toLowerCase().includes(q) || (event.description ?? '').toLowerCase().includes(q))
+      .sort((a, b) => b.starts_at.localeCompare(a.starts_at));
+  }, [events, query]);
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, Event[]>();
@@ -103,100 +135,131 @@ export function CalendarView({ events }: { events: Event[] }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => goToMonth(-1)} hitSlop={8} accessibilityLabel="Previous month">
-          <MaterialIcons name="chevron-left" size={24} color="#3a3f42" />
-        </Pressable>
-        <Text style={styles.monthLabel}>{monthLabel}</Text>
-        <Pressable onPress={() => goToMonth(1)} hitSlop={8} accessibilityLabel="Next month">
-          <MaterialIcons name="chevron-right" size={24} color="#3a3f42" />
-        </Pressable>
+      <View style={styles.searchRow}>
+        <MaterialIcons name="search" size={18} color={Colors.textSecondary} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search events by title or description…"
+          style={styles.searchInput}
+        />
+        {query ? (
+          <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityLabel="Clear search">
+            <MaterialIcons name="close" size={18} color={Colors.textSecondary} />
+          </Pressable>
+        ) : null}
       </View>
 
-      <View style={styles.weekdayRow}>
-        {WEEKDAY_LABELS.map((label) => (
-          <Text key={label} style={styles.weekdayLabel}>
-            {label}
-          </Text>
-        ))}
-      </View>
-
-      <View style={styles.grid}>
-        {days.map((date) => {
-          const key = dateKey(date);
-          const dayEvents = eventsByDay.get(key) ?? [];
-          const isCurrentMonth = date.getMonth() === monthDate.getMonth();
-          const isToday = key === todayKey;
-          const dayNumber = (
-            <Text
-              style={[
-                styles.dayNumber,
-                !isCurrentMonth && styles.dayNumberMuted,
-                isToday && styles.dayNumberToday,
-              ]}>
-              {date.getDate()}
-            </Text>
-          );
-
-          if (!isWide) {
-            return (
-              <Pressable
-                key={key}
-                onPress={() => openDayNarrow(date, dayEvents)}
-                disabled={dayEvents.length === 0}
-                style={styles.cellNarrow}>
-                {dayNumber}
-                {dayEvents.length > 0 ? (
-                  <View style={styles.dots}>
-                    {dayEvents.slice(0, 3).map((event) => (
-                      <View
-                        key={event.id}
-                        style={[styles.dot, { backgroundColor: DOT_COLOR[event.status] ?? '#687076' }]}
-                      />
-                    ))}
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          }
-
-          const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_ROWS);
-          const overflowCount = dayEvents.length - visibleEvents.length;
-
-          return (
-            <View key={key} style={styles.cellWide}>
-              <View style={styles.cellWideHeader}>{dayNumber}</View>
-              <View style={styles.eventRows}>
-                {visibleEvents.map((event) => (
-                  <Pressable
-                    key={event.id}
-                    onPress={() => router.push(`/dashboard/${event.id}`)}
-                    style={({ pressed }) => [styles.eventRow, pressed && styles.eventRowPressed]}>
-                    <View style={[styles.eventBar, { backgroundColor: DOT_COLOR[event.status] ?? '#687076' }]} />
-                    <Text style={styles.eventRowText} numberOfLines={1}>
-                      {event.title}
-                    </Text>
-                  </Pressable>
-                ))}
-                {overflowCount > 0 ? (
-                  <Pressable onPress={() => openDayPicker(date, dayEvents)} style={styles.moreRow}>
-                    <Text style={styles.moreRowText}>+{overflowCount} more</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            </View>
-          );
-        })}
-      </View>
-
-      <View style={styles.legend}>
-        {(['went', 'going', 'pending'] as const).map((status) => (
-          <View key={status} style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: DOT_COLOR[status] }]} />
-            <Text style={styles.legendLabel}>{STATUS_LABEL[status]}</Text>
+      {searchResults ? (
+        searchResults.length > 0 ? (
+          <View style={styles.searchResults}>
+            {searchResults.map((event) => (
+              <EventRow key={event.id} event={event} onPress={() => router.push(`/dashboard/${event.id}`)} />
+            ))}
           </View>
-        ))}
-      </View>
+        ) : (
+          <Text style={styles.emptySearchText}>No events match &quot;{query.trim()}&quot;.</Text>
+        )
+      ) : (
+        <>
+          <View style={styles.header}>
+            <Pressable onPress={() => goToMonth(-1)} hitSlop={8} accessibilityLabel="Previous month">
+              <MaterialIcons name="chevron-left" size={24} color={Colors.text} />
+            </Pressable>
+            <Text style={styles.monthLabel}>{monthLabel}</Text>
+            <Pressable onPress={() => goToMonth(1)} hitSlop={8} accessibilityLabel="Next month">
+              <MaterialIcons name="chevron-right" size={24} color={Colors.text} />
+            </Pressable>
+          </View>
+
+          <View style={styles.weekdayRow}>
+            {WEEKDAY_LABELS.map((label) => (
+              <Text key={label} style={styles.weekdayLabel}>
+                {label}
+              </Text>
+            ))}
+          </View>
+
+          <View style={styles.grid}>
+            {days.map((date) => {
+              const key = dateKey(date);
+              const dayEvents = eventsByDay.get(key) ?? [];
+              const isCurrentMonth = date.getMonth() === monthDate.getMonth();
+              const isToday = key === todayKey;
+              const dayNumber = (
+                <Text
+                  style={[
+                    styles.dayNumber,
+                    !isCurrentMonth && styles.dayNumberMuted,
+                    isToday && styles.dayNumberToday,
+                  ]}>
+                  {date.getDate()}
+                </Text>
+              );
+
+              if (!isWide) {
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => openDayNarrow(date, dayEvents)}
+                    disabled={dayEvents.length === 0}
+                    style={styles.cellNarrow}>
+                    {dayNumber}
+                    {dayEvents.length > 0 ? (
+                      <View style={styles.dots}>
+                        {dayEvents.slice(0, 3).map((event) => (
+                          <View
+                            key={event.id}
+                            style={[styles.dot, { backgroundColor: DOT_COLOR[event.status] ?? Colors.textSecondary }]}
+                          />
+                        ))}
+                      </View>
+                    ) : null}
+                  </Pressable>
+                );
+              }
+
+              const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_ROWS);
+              const overflowCount = dayEvents.length - visibleEvents.length;
+
+              return (
+                <View key={key} style={styles.cellWide}>
+                  <View style={styles.cellWideHeader}>{dayNumber}</View>
+                  <View style={styles.eventRows}>
+                    {visibleEvents.map((event) => (
+                      <Pressable
+                        key={event.id}
+                        onPress={() => router.push(`/dashboard/${event.id}`)}
+                        style={({ pressed }) => [styles.eventRow, pressed && styles.eventRowPressed]}>
+                        <View
+                          style={[styles.eventBar, { backgroundColor: DOT_COLOR[event.status] ?? Colors.textSecondary }]}
+                        />
+                        <Text style={styles.eventRowText} numberOfLines={1}>
+                          {event.title}
+                        </Text>
+                      </Pressable>
+                    ))}
+                    {overflowCount > 0 ? (
+                      <Pressable onPress={() => openDayPicker(date, dayEvents)} style={styles.moreRow}>
+                        <Text style={styles.moreRowText}>+{overflowCount} more</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          <View style={styles.legend}>
+            {(['went', 'going', 'pending'] as const).map((status) => (
+              <View key={status} style={styles.legendItem}>
+                <View style={[styles.dot, { backgroundColor: DOT_COLOR[status] }]} />
+                <Text style={styles.legendLabel}>{StatusLabel[status]}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
 
       {dayPicker ? (
         // Unmounted entirely (rather than an always-mounted <Modal
@@ -211,23 +274,14 @@ export function CalendarView({ events }: { events: Event[] }) {
               <Text style={styles.modalTitle}>{dayPicker.label}</Text>
               <ScrollView>
                 {dayPicker.events.map((event) => (
-                  <Pressable
+                  <EventRow
                     key={event.id}
-                    style={styles.modalRow}
+                    event={event}
                     onPress={() => {
                       setDayPicker(null);
                       router.push(`/dashboard/${event.id}`);
-                    }}>
-                    <View style={styles.modalRowMain}>
-                      <Text style={styles.modalRowTitle} numberOfLines={1}>
-                        {event.title}
-                      </Text>
-                      <Text style={styles.modalRowMeta}>{formatEventDateTime(event.starts_at)}</Text>
-                    </View>
-                    <View style={[styles.statusPill, { backgroundColor: DOT_COLOR[event.status] ?? '#687076' }]}>
-                      <Text style={styles.statusPillText}>{STATUS_LABEL[event.status] ?? event.status}</Text>
-                    </View>
-                  </Pressable>
+                    }}
+                  />
                 ))}
               </ScrollView>
               <Pressable onPress={() => setDayPicker(null)} style={styles.modalClose}>
@@ -243,15 +297,28 @@ export function CalendarView({ events }: { events: Event[] }) {
 
 const styles = StyleSheet.create({
   container: { gap: 12 },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderInput,
+    borderRadius: Radius.sm,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: Colors.text },
+  searchResults: { gap: 2 },
+  emptySearchText: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', paddingVertical: 16 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
-  monthLabel: { fontSize: 16, fontWeight: '700', minWidth: 160, textAlign: 'center' },
+  monthLabel: { fontSize: 16, fontWeight: '700', minWidth: 160, textAlign: 'center', color: Colors.text },
   weekdayRow: { flexDirection: 'row' },
   weekdayLabel: {
     flexBasis: `${100 / 7}%`,
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '700',
-    color: '#687076',
+    color: Colors.textSecondary,
     paddingBottom: 6,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
@@ -264,7 +331,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     gap: 4,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e6e8eb',
+    borderColor: Colors.border,
   },
   dots: { flexDirection: 'row', gap: 3 },
   dot: { width: 6, height: 6, borderRadius: 3 },
@@ -274,24 +341,31 @@ const styles = StyleSheet.create({
     flexBasis: `${100 / 7}%`,
     minHeight: 112,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e6e8eb',
+    borderColor: Colors.border,
     paddingVertical: 4,
     paddingHorizontal: 2,
   },
   cellWideHeader: { alignItems: 'flex-end', paddingRight: 6, paddingBottom: 2 },
   eventRows: { gap: 1 },
-  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 4, paddingVertical: 1 },
-  eventRowPressed: { backgroundColor: '#e6f4fa' },
+  eventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: Radius.xs,
+  },
+  eventRowPressed: { backgroundColor: Colors.accentTint },
   eventBar: { width: 3, height: 12, borderRadius: 2 },
-  eventRowText: { flex: 1, fontSize: 11, color: '#1a1d1e' },
+  eventRowText: { flex: 1, fontSize: 11, color: Colors.text },
   moreRow: { paddingHorizontal: 4, paddingVertical: 1 },
-  moreRowText: { fontSize: 11, color: '#687076', fontWeight: '600' },
+  moreRowText: { fontSize: 11, color: Colors.textSecondary, fontWeight: '600' },
 
-  dayNumber: { fontSize: 13, color: '#1a1d1e', minWidth: 20, textAlign: 'center' },
-  dayNumberMuted: { color: '#c7ccd1' },
+  dayNumber: { fontSize: 13, color: Colors.text, minWidth: 20, textAlign: 'center' },
+  dayNumberMuted: { color: Colors.textTertiary },
   dayNumberToday: {
-    color: 'white',
-    backgroundColor: '#d33',
+    color: Colors.surface,
+    backgroundColor: Colors.accent,
     fontWeight: '700',
     width: 22,
     height: 22,
@@ -302,7 +376,7 @@ const styles = StyleSheet.create({
 
   legend: { flexDirection: 'row', gap: 16, justifyContent: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendLabel: { fontSize: 12, color: '#687076' },
+  legendLabel: { fontSize: 12, color: Colors.textSecondary },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -314,12 +388,12 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     maxHeight: '80%',
-    backgroundColor: 'white',
-    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
     padding: 20,
     gap: 12,
   },
-  modalTitle: { fontSize: 16, fontWeight: '700' },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: Colors.text },
   modalRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -327,13 +401,13 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e6e8eb',
+    borderBottomColor: Colors.border,
   },
   modalRowMain: { flex: 1, gap: 2 },
-  modalRowTitle: { fontSize: 15, fontWeight: '600' },
-  modalRowMeta: { fontSize: 13, color: '#687076' },
-  statusPill: { borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
-  statusPillText: { fontSize: 12, fontWeight: '700', color: 'white' },
+  modalRowTitle: { fontSize: 15, fontWeight: '600', color: Colors.text },
+  modalRowMeta: { fontSize: 13, color: Colors.textSecondary },
+  statusPill: { borderRadius: Radius.pill, paddingVertical: 4, paddingHorizontal: 10 },
+  statusPillText: { fontSize: 12, fontWeight: '700', color: Colors.surface },
   modalClose: { alignSelf: 'flex-end', paddingVertical: 6, paddingHorizontal: 4 },
-  modalCloseText: { color: '#0a7ea4', fontWeight: '600' },
+  modalCloseText: { color: Colors.accent, fontWeight: '600' },
 });

@@ -3,17 +3,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Colors, Radius, StatusColors, StatusLabel } from '@/constants/design';
 import { formatEventDateTime } from '@/features/events/format';
 import { useEvent, useUpdateLearnings } from '@/features/events/use-events';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Pending',
-  going: 'Going',
-  went: 'Went',
-  did_not_go: 'Did not go',
-  unresolved: 'Unresolved',
-};
 
 export default function EventDetail() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -66,14 +59,16 @@ export default function EventDetail() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Pressable onPress={() => router.back()} style={styles.backButton}>
-        <MaterialIcons name="arrow-back" size={20} color="#0a7ea4" />
+        <MaterialIcons name="arrow-back" size={20} color={Colors.accent} />
         <Text style={styles.backText}>Back</Text>
       </Pressable>
 
       <View style={styles.header}>
         <Text style={styles.title}>{event.title}</Text>
-        <View style={styles.statusPill}>
-          <Text style={styles.statusText}>{STATUS_LABEL[event.status] ?? event.status}</Text>
+        <View style={[styles.statusPill, { backgroundColor: StatusColors[event.status].bg }]}>
+          <Text style={[styles.statusText, { color: StatusColors[event.status].text }]}>
+            {StatusLabel[event.status] ?? event.status}
+          </Text>
         </View>
       </View>
 
@@ -151,7 +146,7 @@ export default function EventDetail() {
 function MetaRow({ icon, text }: { icon: keyof typeof MaterialIcons.glyphMap; text: string }) {
   return (
     <View style={styles.metaRow}>
-      <MaterialIcons name={icon} size={18} color="#687076" />
+      <MaterialIcons name={icon} size={18} color={Colors.textSecondary} />
       <Text style={styles.metaText}>{text}</Text>
     </View>
   );
@@ -181,29 +176,30 @@ const styles = StyleSheet.create({
   container: { padding: 24, gap: 20, maxWidth: 640, width: '100%', alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   backButton: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
-  backText: { color: '#0a7ea4', fontWeight: '600' },
+  backText: { color: Colors.accent, fontWeight: '600' },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
-  title: { fontSize: 24, fontWeight: '700', flex: 1 },
-  statusPill: { backgroundColor: '#e6f4fa', borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
-  statusText: { fontSize: 12, fontWeight: '700', color: '#0a7ea4' },
+  title: { fontSize: 24, fontWeight: '700', flex: 1, color: Colors.text },
+  statusPill: { borderRadius: Radius.pill, paddingVertical: 4, paddingHorizontal: 10 },
+  statusText: { fontSize: 12, fontWeight: '700' },
   metaBlock: { gap: 8 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  metaText: { fontSize: 14, color: '#3a3f42', flexShrink: 1 },
+  metaText: { fontSize: 14, color: Colors.text, flexShrink: 1 },
   section: { gap: 8 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#687076', textTransform: 'uppercase' },
-  bodyText: { fontSize: 15, lineHeight: 22, color: '#1a1d1e' },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase' },
+  bodyText: { fontSize: 15, lineHeight: 22, color: Colors.text },
   topics: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  topicPill: { backgroundColor: '#e6f4fa', borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
-  topicText: { fontSize: 12, color: '#0a7ea4', fontWeight: '600' },
+  topicPill: { backgroundColor: Colors.accentTint, borderRadius: Radius.pill, paddingVertical: 4, paddingHorizontal: 10 },
+  topicText: { fontSize: 12, color: Colors.accent, fontWeight: '600' },
   learningsInput: {
     minHeight: 140,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#c7ccd1',
-    borderRadius: 8,
+    borderColor: Colors.borderInput,
+    borderRadius: Radius.sm,
     padding: 12,
     fontSize: 15,
     lineHeight: 22,
+    color: Colors.text,
   },
-  saveState: { fontSize: 12, color: '#687076' },
+  saveState: { fontSize: 12, color: Colors.textSecondary },
 });

@@ -4,7 +4,18 @@ import { useFonts } from 'expo-font';
 import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { Colors } from '@/constants/design';
 import { AuthProvider } from '@/features/auth/auth-context';
+
+// React Navigation's DefaultTheme.colors.background is a light gray
+// (#f2f2f7), not white — every nested Stack's screen container paints that
+// underneath its content by default. That's invisible on screens with an
+// opaque full-bleed background, but it shows up as a hard seam wherever
+// something meets the screen edge with a color that isn't that exact gray
+// (e.g. the top bar's gradient fading to white in adaptive-shell.tsx).
+// Overriding just this one token — rather than patching `contentStyle` on
+// every Stack — fixes it everywhere at once.
+const AppTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: Colors.background } };
 
 // GestureHandlerRootView wraps the whole app up front even though nothing
 // uses gestures yet — Phase 2's swipe-card deck needs it at the root, and
@@ -41,7 +52,7 @@ export default function RootLayout() {
               Navigation's screen container to a dark background while the
               content stayed styled for light — unreadable dark-on-dark.
               Revisit once a real dark palette is designed. */}
-          <ThemeProvider value={DefaultTheme}>
+          <ThemeProvider value={AppTheme}>
             <Stack screenOptions={{ headerShown: false }} />
           </ThemeProvider>
         </AuthProvider>

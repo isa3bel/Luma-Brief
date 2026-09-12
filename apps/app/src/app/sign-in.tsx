@@ -2,6 +2,7 @@ import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Colors, Radius } from '@/constants/design';
 import { useAuth } from '@/features/auth/auth-context';
 
 export default function SignIn() {
@@ -66,29 +67,30 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: Colors.background },
   card: { width: '100%', maxWidth: 360, gap: 12 },
-  title: { fontSize: 24, fontWeight: '700' },
-  subtitle: { fontSize: 14, color: '#687076', marginBottom: 8 },
+  title: { fontSize: 24, fontWeight: '700', color: Colors.text },
+  subtitle: { fontSize: 14, color: Colors.textSecondary, marginBottom: 8 },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#c7ccd1',
-    borderRadius: 8,
+    borderColor: Colors.borderInput,
+    borderRadius: Radius.sm,
     paddingVertical: 10,
     paddingHorizontal: 12,
     fontSize: 16,
+    color: Colors.text,
   },
-  cta: { backgroundColor: '#0a7ea4', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  cta: { backgroundColor: Colors.accent, paddingVertical: 12, borderRadius: Radius.sm, alignItems: 'center' },
   ctaDisabled: { opacity: 0.5 },
-  ctaText: { color: 'white', fontSize: 16, fontWeight: '600' },
-  error: { color: '#d33', fontSize: 13 },
-  sent: { fontSize: 15, lineHeight: 22 },
+  ctaText: { color: Colors.surface, fontSize: 16, fontWeight: '600' },
+  error: { color: Colors.danger, fontSize: 13 },
+  sent: { fontSize: 15, lineHeight: 22, color: Colors.text },
   mockNotice: {
     fontSize: 13,
     lineHeight: 18,
-    color: '#8a6d00',
-    backgroundColor: '#fff6da',
+    color: Colors.noticeText,
+    backgroundColor: Colors.noticeBg,
     padding: 10,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
   },
 });

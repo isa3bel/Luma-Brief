@@ -12,6 +12,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { Colors, StatusColors } from '@/constants/design';
+
 import { EventCard } from './event-card';
 import type { Event, EventStatus } from './types';
 
@@ -103,13 +105,13 @@ function SwipeCard({
               onPress={() => flingOffscreen('did_not_go')}
               style={[styles.cornerButton, styles.cornerButtonLeft]}
               accessibilityLabel="Did not go">
-              <MaterialIcons name="close" size={22} color="#d33" />
+              <MaterialIcons name="close" size={22} color={Colors.danger} />
             </Pressable>
             <Pressable
               onPress={() => flingOffscreen('went')}
               style={[styles.cornerButton, styles.cornerButtonRight]}
               accessibilityLabel="Went">
-              <MaterialIcons name="check" size={22} color="#1a9c53" />
+              <MaterialIcons name="check" size={22} color={StatusColors.going.bg} />
             </Pressable>
           </>
         ) : null}
@@ -162,8 +164,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 10,
   },
-  wentBadge: { left: 20, borderColor: '#1a9c53', transform: [{ rotate: '-12deg' }] },
-  skippedBadge: { right: 20, borderColor: '#d33', transform: [{ rotate: '12deg' }] },
+  wentBadge: { left: 20, borderColor: StatusColors.going.bg, transform: [{ rotate: '-12deg' }] },
+  skippedBadge: { right: 20, borderColor: Colors.danger, transform: [{ rotate: '12deg' }] },
   badgeText: { fontWeight: '800', fontSize: 16 },
   cornerButton: {
     position: 'absolute',

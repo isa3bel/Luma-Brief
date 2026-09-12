@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Colors, Radius } from '@/constants/design';
+
 import { formatEventDateTime } from './format';
 import type { Event } from './types';
 
@@ -44,25 +46,25 @@ export function EventCard({ event, onPressDetails }: { event: Event; onPressDeta
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    borderRadius: 20,
-    backgroundColor: 'white',
+    borderRadius: Radius.cardLarge,
+    backgroundColor: Colors.surface,
     padding: 24,
     justifyContent: 'flex-end',
     gap: 8,
     shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 4,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e6e8eb',
+    borderColor: Colors.border,
   },
-  title: { fontSize: 22, fontWeight: '700' },
-  meta: { fontSize: 14, color: '#687076' },
-  description: { fontSize: 14, color: '#3a3f42', marginTop: 8, lineHeight: 20 },
+  title: { fontSize: 22, fontWeight: '700', color: Colors.text },
+  meta: { fontSize: 14, color: Colors.textSecondary },
+  description: { fontSize: 14, color: Colors.text, marginTop: 8, lineHeight: 20 },
   topics: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  topicPill: { backgroundColor: '#e6f4fa', borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
-  topicText: { fontSize: 12, color: '#0a7ea4', fontWeight: '600' },
+  topicPill: { backgroundColor: Colors.accentTint, borderRadius: Radius.pill, paddingVertical: 4, paddingHorizontal: 10 },
+  topicText: { fontSize: 12, color: Colors.accent, fontWeight: '600' },
   detailsLink: { marginTop: 12 },
-  detailsLinkText: { fontSize: 13, fontWeight: '600', color: '#0a7ea4' },
+  detailsLinkText: { fontSize: 13, fontWeight: '600', color: Colors.accent },
 });

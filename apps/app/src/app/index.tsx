@@ -1,6 +1,7 @@
 import { Redirect, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Colors, Radius } from '@/constants/design';
 import { useAuth } from '@/features/auth/auth-context';
 
 export default function Landing() {
@@ -36,17 +37,17 @@ export default function Landing() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   hero: { maxWidth: 480, gap: 16, alignItems: 'center' },
-  title: { fontSize: 32, fontWeight: '700', textAlign: 'center' },
-  subtitle: { fontSize: 16, lineHeight: 24, textAlign: 'center', color: '#687076' },
+  title: { fontSize: 32, fontWeight: '700', textAlign: 'center', color: Colors.text },
+  subtitle: { fontSize: 16, lineHeight: 24, textAlign: 'center', color: Colors.textSecondary },
   cta: {
     marginTop: 8,
-    backgroundColor: '#0a7ea4',
+    backgroundColor: Colors.accent,
     paddingVertical: 12,
     paddingHorizontal: 28,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
   },
-  ctaText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  ctaText: { color: Colors.surface, fontSize: 16, fontWeight: '600' },
 });

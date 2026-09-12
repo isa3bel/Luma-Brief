@@ -9,7 +9,8 @@ export type NavItem = {
 };
 
 export const navItems: NavItem[] = [
-  { key: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
+  { key: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'calendar-month' },
+  { key: 'learnings', label: 'Learnings', href: '/learnings', icon: 'auto-awesome' },
   { key: 'network', label: 'Network', href: '/network', icon: 'people' },
   { key: 'settings', label: 'Settings', href: '/settings', icon: 'settings' },
 ];
