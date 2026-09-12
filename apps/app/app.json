@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Tech Event Dashboard",
-    "slug": "tech-event-dashboard",
+    "name": "Luma Brief",
+    "slug": "luma-brief",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tech-event-dashboard",
+    "scheme": "luma-brief",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"

@@ -1,4 +1,4 @@
--- Tech Event Dashboard — initial schema
+-- Luma Brief — initial schema
 -- Tables favor text + CHECK over enum types, and a jsonb `metadata` escape
 -- hatch, since the product is expected to grow new fields/pages over time.
 

@@ -1,6 +1,6 @@
 ---
 name: run-web
-description: Build, run, and drive the Tech Event Dashboard web app (apps/app, Expo Router). Use when asked to start the app, take a screenshot of it, or verify a UI change actually works in the browser.
+description: Build, run, and drive the Luma Brief web app (apps/app, Expo Router). Use when asked to start the app, take a screenshot of it, or verify a UI change actually works in the browser.
 ---
 
 The app is Expo Router served on web via Metro (`expo start --web`). There's no
@@ -58,7 +58,7 @@ sending a real magic-link email.
 ```
 launch
 nav http://localhost:8081/
-wait-for Tech Event Dashboard
+wait-for Luma Brief
 screenshot 01-landing
 click Sign in
 wait-for magic link

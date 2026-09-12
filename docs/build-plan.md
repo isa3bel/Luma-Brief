@@ -1,4 +1,4 @@
-# Tech Event Dashboard — Build Plan
+# Luma Brief — Build Plan
 
 ## Context
 
@@ -13,7 +13,7 @@ The repo is currently empty (just the PRD and a blank README) — this is a from
 
 ### Repo layout (pnpm workspace)
 ```
-tech-event-dashboard/
+luma-brief/
 ├── apps/
 │   ├── app/            # Expo Router app — web + iOS + Android, one codebase
 │   └── extension/      # separate MV3 browser extension (own toolchain, not Expo)
