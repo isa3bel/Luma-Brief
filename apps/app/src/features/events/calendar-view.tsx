@@ -323,18 +323,23 @@ const styles = StyleSheet.create({
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
 
-  // Narrow (mobile) layout — compact square cells, dots only.
+  // Narrow (mobile) layout — dots only, no per-event rows (too thin for
+  // readable title text). Deliberately NOT aspectRatio: 1 — square cells
+  // sized off a ~55-60pt-wide column left the whole grid (and the section
+  // it's in) far shorter than the screen, with a large dead gap below the
+  // legend on a real phone. A fixed minHeight fills that space instead,
+  // independent of however narrow the device is.
   cellNarrow: {
     flexBasis: `${100 / 7}%`,
-    aspectRatio: 1,
+    minHeight: 84,
     alignItems: 'center',
-    paddingTop: 8,
-    gap: 4,
+    paddingTop: 10,
+    gap: 5,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
   },
-  dots: { flexDirection: 'row', gap: 3 },
-  dot: { width: 6, height: 6, borderRadius: 3 },
+  dots: { flexDirection: 'row', gap: 4 },
+  dot: { width: 7, height: 7, borderRadius: 3.5 },
 
   // Wide (desktop/tablet) layout — Apple/Google-Calendar-style rows.
   cellWide: {
