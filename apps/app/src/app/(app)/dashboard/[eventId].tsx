@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Colors, Radius, StatusColors, StatusLabel } from '@/constants/design';
@@ -26,6 +26,7 @@ export default function EventDetail() {
 
   const [learnings, setLearnings] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const scrollRef = useRef<ScrollView>(null);
 
   // Seed the local textarea from the fetched event exactly once it arrives,
   // rather than on every refetch — otherwise an in-flight autosave could
@@ -68,16 +69,18 @@ export default function EventDetail() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       // iOS only (Android's equivalent is app.json's
-      // android.softwareKeyboardLayoutMode). This is what actually gives
-      // the growing-as-you-type behavior a plain KeyboardAvoidingView
-      // can't: it scrolls the focused input into view on focus, then keeps
-      // following the cursor as the Learnings textarea grows, instead of
-      // just uniformly padding the whole screen up once and leaving the
-      // rest to manual scrolling.
+      // android.softwareKeyboardLayoutMode) — scrolls the focused input
+      // into view on focus and when the keyboard's own size changes.
+      // Confirmed on a real device this does NOT keep following the
+      // cursor as the Learnings textarea grows from typing alone (e.g.
+      // repeatedly pressing Enter) — the keyboard's height never changes
+      // in that case, so nothing here re-triggers. That's what the
+      // TextInput's onContentSizeChange + scrollRef below is for.
       automaticallyAdjustKeyboardInsets>
       <Pressable onPress={() => router.back()} style={styles.backButton}>
         <MaterialIcons name="arrow-back" size={20} color={Colors.accent} />
@@ -169,6 +172,12 @@ export default function EventDetail() {
           value={learnings}
           onChangeText={handleChange}
           onBlur={() => debouncedSave.flush()}
+          // Fires as the multiline box grows a new line — Learnings is the
+          // last section on the page, so scrolling to the very bottom of
+          // the ScrollView and scrolling to the bottom of this box are the
+          // same thing, which is also exactly where the cursor is while
+          // actively typing.
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
           placeholder="What did you take away from this one?"
           multiline
           textAlignVertical="top"
