@@ -1,7 +1,17 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { Colors, Radius, StatusColors, StatusLabel } from '@/constants/design';
 import { formatEventDateTime } from '@/features/events/format';
@@ -67,104 +77,112 @@ export default function EventDetail() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
-        <MaterialIcons name="arrow-back" size={20} color={Colors.accent} />
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
+    // Plain ScrollView doesn't know to push its content above the keyboard
+    // on its own — without this, the Learnings textarea near the bottom of
+    // the page (the tallest input on the whole screen) ends up hidden
+    // behind the keyboard the moment it's focused. Android's own
+    // windowSoftInputMode already resizes the view, so this only needs to
+    // do anything on iOS.
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <MaterialIcons name="arrow-back" size={20} color={Colors.accent} />
+          <Text style={styles.backText}>Back</Text>
+        </Pressable>
 
-      <View style={styles.header}>
-        <Text style={styles.title}>{event.title}</Text>
-        <View style={styles.statusGroup}>
-          <View style={[styles.statusPill, { backgroundColor: StatusColors[event.status].bg }]}>
-            <Text style={[styles.statusText, { color: StatusColors[event.status].text }]}>
-              {StatusLabel[event.status] ?? event.status}
-            </Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>{event.title}</Text>
+          <View style={styles.statusGroup}>
+            <View style={[styles.statusPill, { backgroundColor: StatusColors[event.status].bg }]}>
+              <Text style={[styles.statusText, { color: StatusColors[event.status].text }]}>
+                {StatusLabel[event.status] ?? event.status}
+              </Text>
+            </View>
+            {REMOVABLE_STATUSES.has(event.status) ? (
+              <Pressable
+                onPress={() => {
+                  updateStatus.mutate(
+                    { id: event.id, status: 'did_not_go' },
+                    { onSuccess: () => router.back() }
+                  );
+                }}
+                disabled={updateStatus.isPending}
+                style={[styles.removeButton, updateStatus.isPending && styles.removeButtonDisabled]}>
+                <Text style={styles.removeButtonText}>Remove</Text>
+              </Pressable>
+            ) : null}
           </View>
-          {REMOVABLE_STATUSES.has(event.status) ? (
-            <Pressable
-              onPress={() => {
-                updateStatus.mutate(
-                  { id: event.id, status: 'did_not_go' },
-                  { onSuccess: () => router.back() }
-                );
-              }}
-              disabled={updateStatus.isPending}
-              style={[styles.removeButton, updateStatus.isPending && styles.removeButtonDisabled]}>
-              <Text style={styles.removeButtonText}>Remove</Text>
-            </Pressable>
-          ) : null}
         </View>
-      </View>
 
-      <View style={styles.metaBlock}>
-        <MetaRow icon="event" text={formatEventDateTime(event.starts_at)} />
-        {event.location_name ? (
-          <MetaRow
-            icon="place"
-            text={[event.location_name, event.location_address].filter(Boolean).join(' · ')}
-          />
+        <View style={styles.metaBlock}>
+          <MetaRow icon="event" text={formatEventDateTime(event.starts_at)} />
+          {event.location_name ? (
+            <MetaRow
+              icon="place"
+              text={[event.location_name, event.location_address].filter(Boolean).join(' · ')}
+            />
+          ) : null}
+          {event.luma_url ? <MetaRow icon="link" text={event.luma_url} /> : null}
+        </View>
+
+        {event.description ? (
+          <Section title="About">
+            <Text style={styles.bodyText}>{event.description}</Text>
+          </Section>
         ) : null}
-        {event.luma_url ? <MetaRow icon="link" text={event.luma_url} /> : null}
-      </View>
 
-      {event.description ? (
-        <Section title="About">
-          <Text style={styles.bodyText}>{event.description}</Text>
-        </Section>
-      ) : null}
-
-      {event.speakers.length > 0 ? (
-        <Section title="Speakers">
-          {event.speakers.map((speaker) => (
-            <Text key={speaker.name} style={styles.bodyText}>
-              {speaker.name}
-              {speaker.title || speaker.company
-                ? ` — ${[speaker.title, speaker.company].filter(Boolean).join(', ')}`
-                : ''}
-            </Text>
-          ))}
-        </Section>
-      ) : null}
-
-      {event.sponsors.length > 0 ? (
-        <Section title="Sponsors">
-          <Text style={styles.bodyText}>{event.sponsors.map((s) => s.name).join(', ')}</Text>
-        </Section>
-      ) : null}
-
-      {event.topics.length > 0 ? (
-        <Section title="Topics">
-          <View style={styles.topics}>
-            {event.topics.map((topic) => (
-              <View key={topic} style={styles.topicPill}>
-                <Text style={styles.topicText}>{topic}</Text>
-              </View>
+        {event.speakers.length > 0 ? (
+          <Section title="Speakers">
+            {event.speakers.map((speaker) => (
+              <Text key={speaker.name} style={styles.bodyText}>
+                {speaker.name}
+                {speaker.title || speaker.company
+                  ? ` — ${[speaker.title, speaker.company].filter(Boolean).join(', ')}`
+                  : ''}
+              </Text>
             ))}
-          </View>
-        </Section>
-      ) : null}
+          </Section>
+        ) : null}
 
-      <Section
-        title="Learnings"
-        trailing={
-          saveState === 'saving' ? (
-            <Text style={styles.saveState}>Saving…</Text>
-          ) : saveState === 'saved' ? (
-            <Text style={styles.saveState}>Saved</Text>
-          ) : null
-        }>
-        <TextInput
-          value={learnings}
-          onChangeText={handleChange}
-          onBlur={() => debouncedSave.flush()}
-          placeholder="What did you take away from this one?"
-          multiline
-          textAlignVertical="top"
-          style={styles.learningsInput}
-        />
-      </Section>
-    </ScrollView>
+        {event.sponsors.length > 0 ? (
+          <Section title="Sponsors">
+            <Text style={styles.bodyText}>{event.sponsors.map((s) => s.name).join(', ')}</Text>
+          </Section>
+        ) : null}
+
+        {event.topics.length > 0 ? (
+          <Section title="Topics">
+            <View style={styles.topics}>
+              {event.topics.map((topic) => (
+                <View key={topic} style={styles.topicPill}>
+                  <Text style={styles.topicText}>{topic}</Text>
+                </View>
+              ))}
+            </View>
+          </Section>
+        ) : null}
+
+        <Section
+          title="Learnings"
+          trailing={
+            saveState === 'saving' ? (
+              <Text style={styles.saveState}>Saving…</Text>
+            ) : saveState === 'saved' ? (
+              <Text style={styles.saveState}>Saved</Text>
+            ) : null
+          }>
+          <TextInput
+            value={learnings}
+            onChangeText={handleChange}
+            onBlur={() => debouncedSave.flush()}
+            placeholder="What did you take away from this one?"
+            multiline
+            textAlignVertical="top"
+            style={styles.learningsInput}
+          />
+        </Section>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -198,6 +216,7 @@ function Section({
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   container: { padding: 24, gap: 20, maxWidth: 640, width: '100%', alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   backButton: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
