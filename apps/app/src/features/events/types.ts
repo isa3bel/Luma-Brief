@@ -21,4 +21,6 @@ export type Event = {
   topics: string[];
   status: EventStatus;
   learnings?: string;
+  linkedin_post_urn?: string;
+  linkedin_posted_at?: string;
 };

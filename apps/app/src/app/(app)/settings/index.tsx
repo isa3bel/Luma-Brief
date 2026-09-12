@@ -3,7 +3,13 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 
 import { Colors, Radius } from '@/constants/design';
 import { useLumaSync } from '@/features/events/use-luma-sync';
+import { useConnectLinkedin, useLinkedinConnection } from '@/features/linkedin/use-linkedin';
 import { useSaveLumaIcalUrl, useUserSettings } from '@/features/settings/use-user-settings';
+
+function formatExpiry(iso: string | null) {
+  if (!iso) return '';
+  return `Connected until ${new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+}
 
 function formatLastSync(iso: string | null) {
   if (!iso) return 'Never synced';
@@ -19,6 +25,8 @@ export default function Settings() {
   const { data: settings, isLoading } = useUserSettings();
   const saveUrl = useSaveLumaIcalUrl();
   const lumaSync = useLumaSync();
+  const { data: linkedin, isLoading: linkedinLoading } = useLinkedinConnection();
+  const connectLinkedin = useConnectLinkedin();
 
   const [icalUrl, setIcalUrl] = useState('');
 
@@ -95,6 +103,46 @@ export default function Settings() {
         {lumaSync.isError ? (
           <Text style={styles.errorText}>
             {lumaSync.error instanceof Error ? lumaSync.error.message : 'Sync failed.'}
+          </Text>
+        ) : null}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>LinkedIn</Text>
+        <Text style={styles.explainerText}>
+          Connect once to draft and post &quot;Share on LinkedIn&quot; write-ups from an event&apos;s
+          Learnings notes. Connections last about 60 days, then need reconnecting here.
+        </Text>
+        {linkedinLoading ? (
+          <ActivityIndicator />
+        ) : linkedin?.connected ? (
+          <>
+            <Text style={styles.successText}>
+              Connected{linkedin.memberName ? ` as ${linkedin.memberName}` : ''}.
+            </Text>
+            {linkedin.expiresAt ? <Text style={styles.metaText}>{formatExpiry(linkedin.expiresAt)}</Text> : null}
+            <Pressable
+              onPress={() => connectLinkedin.mutate()}
+              disabled={connectLinkedin.isPending}
+              style={[styles.secondaryButton, connectLinkedin.isPending && styles.buttonDisabled]}>
+              <Text style={styles.secondaryButtonText}>
+                {connectLinkedin.isPending ? 'Connecting…' : 'Reconnect'}
+              </Text>
+            </Pressable>
+          </>
+        ) : (
+          <Pressable
+            onPress={() => connectLinkedin.mutate()}
+            disabled={connectLinkedin.isPending}
+            style={[styles.primaryButton, connectLinkedin.isPending && styles.buttonDisabled]}>
+            <Text style={styles.primaryButtonText}>
+              {connectLinkedin.isPending ? 'Connecting…' : 'Connect LinkedIn'}
+            </Text>
+          </Pressable>
+        )}
+        {connectLinkedin.isError ? (
+          <Text style={styles.errorText}>
+            {connectLinkedin.error instanceof Error ? connectLinkedin.error.message : 'Connection failed.'}
           </Text>
         ) : null}
       </View>

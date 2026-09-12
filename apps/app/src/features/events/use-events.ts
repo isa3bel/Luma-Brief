@@ -17,7 +17,7 @@ let mockStore: Event[] = [...mockEvents];
 // comment — it was written to mirror this table exactly), so the rows
 // Supabase returns can be cast straight to Event with no mapping step.
 const EVENT_COLUMNS =
-  'id, title, description, starts_at, ends_at, location_name, location_address, is_virtual, luma_url, speakers, sponsors, topics, status, learnings';
+  'id, title, description, starts_at, ends_at, location_name, location_address, is_virtual, luma_url, speakers, sponsors, topics, status, learnings, linkedin_post_urn, linkedin_posted_at';
 
 async function fetchEvents(): Promise<Event[]> {
   if (!isSupabaseConfigured) {

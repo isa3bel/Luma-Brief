@@ -1,13 +1,14 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Colors, Radius, StatusColors, StatusLabel } from '@/constants/design';
 import { formatEventDateTime } from '@/features/events/format';
 import { useEvent, useUpdateEventStatus, useUpdateLearnings } from '@/features/events/use-events';
 import type { EventStatus } from '@/features/events/types';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
+import { useDraftLinkedinPost, useLinkedinConnection, usePostToLinkedin } from '@/features/linkedin/use-linkedin';
 
 // Statuses that actually show up on the Calendar (see CALENDAR_STATUSES in
 // dashboard/index.tsx) — the only ones where "remove from the calendar"
@@ -27,6 +28,11 @@ export default function EventDetail() {
   const [learnings, setLearnings] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const scrollRef = useRef<ScrollView>(null);
+
+  const { data: linkedin } = useLinkedinConnection();
+  const draftPost = useDraftLinkedinPost();
+  const postToLinkedin = usePostToLinkedin();
+  const [linkedinDraft, setLinkedinDraft] = useState<string | null>(null);
 
   // Seed the local textarea from the fetched event exactly once it arrives,
   // rather than on every refetch — otherwise an in-flight autosave could
@@ -49,6 +55,19 @@ export default function EventDetail() {
     setLearnings(next);
     setSaveState('idle');
     debouncedSave(next);
+  };
+
+  const handleDraftLinkedinPost = () => {
+    if (!event) return;
+    draftPost.mutate(event.id, { onSuccess: (draft) => setLinkedinDraft(draft) });
+  };
+
+  const handlePostToLinkedin = () => {
+    if (!event || !linkedinDraft?.trim()) return;
+    postToLinkedin.mutate(
+      { eventId: event.id, text: linkedinDraft },
+      { onSuccess: () => setLinkedinDraft(null) }
+    );
   };
 
   if (isLoading) {
@@ -184,6 +203,86 @@ export default function EventDetail() {
           style={styles.learningsInput}
         />
       </Section>
+
+      {event.learnings?.trim() ? (
+        <Section title="Share on LinkedIn">
+          {event.linkedin_posted_at && event.linkedin_post_urn ? (
+            <>
+              <Text style={styles.bodyText}>
+                Posted{' '}
+                {new Date(event.linkedin_posted_at).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+                .
+              </Text>
+              <Pressable
+                onPress={() =>
+                  Linking.openURL(`https://www.linkedin.com/feed/update/${event.linkedin_post_urn}/`)
+                }>
+                <Text style={styles.linkText}>View on LinkedIn →</Text>
+              </Pressable>
+            </>
+          ) : linkedinDraft !== null ? (
+            <>
+              <TextInput
+                value={linkedinDraft}
+                onChangeText={setLinkedinDraft}
+                multiline
+                textAlignVertical="top"
+                style={styles.learningsInput}
+              />
+              {!linkedin?.connected ? (
+                <Text style={styles.explainerText}>Connect LinkedIn in Settings before posting.</Text>
+              ) : null}
+              {postToLinkedin.isError ? (
+                <Text style={styles.errorText}>
+                  {postToLinkedin.error instanceof Error ? postToLinkedin.error.message : 'Failed to post.'}
+                </Text>
+              ) : null}
+              <View style={styles.linkedinActions}>
+                <Pressable
+                  onPress={handleDraftLinkedinPost}
+                  disabled={draftPost.isPending}
+                  style={[styles.secondaryButton, draftPost.isPending && styles.buttonDisabled]}>
+                  <Text style={styles.secondaryButtonText}>
+                    {draftPost.isPending ? 'Regenerating…' : 'Regenerate'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={handlePostToLinkedin}
+                  disabled={postToLinkedin.isPending || !linkedinDraft.trim()}
+                  style={[
+                    styles.primaryButton,
+                    (postToLinkedin.isPending || !linkedinDraft.trim()) && styles.buttonDisabled,
+                  ]}>
+                  <Text style={styles.primaryButtonText}>
+                    {postToLinkedin.isPending ? 'Posting…' : 'Post to LinkedIn'}
+                  </Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.explainerText}>Turn your Learnings notes above into a LinkedIn post.</Text>
+              <Pressable
+                onPress={handleDraftLinkedinPost}
+                disabled={draftPost.isPending}
+                style={[styles.secondaryButton, draftPost.isPending && styles.buttonDisabled]}>
+                <Text style={styles.secondaryButtonText}>
+                  {draftPost.isPending ? 'Drafting…' : 'Draft a LinkedIn post'}
+                </Text>
+              </Pressable>
+              {draftPost.isError ? (
+                <Text style={styles.errorText}>
+                  {draftPost.error instanceof Error ? draftPost.error.message : 'Failed to draft.'}
+                </Text>
+              ) : null}
+            </>
+          )}
+        </Section>
+      ) : null}
     </ScrollView>
   );
 }
@@ -257,4 +356,26 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   saveState: { fontSize: 12, color: Colors.textSecondary },
+  explainerText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+  errorText: { fontSize: 12, color: Colors.danger },
+  linkText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
+  linkedinActions: { flexDirection: 'row', gap: 10 },
+  primaryButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.accent,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: Radius.sm,
+  },
+  primaryButtonText: { color: Colors.surface, fontSize: 14, fontWeight: '600' },
+  secondaryButton: {
+    alignSelf: 'flex-start',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.accent,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: Radius.sm,
+  },
+  secondaryButtonText: { color: Colors.accent, fontSize: 14, fontWeight: '600' },
+  buttonDisabled: { opacity: 0.5 },
 });
