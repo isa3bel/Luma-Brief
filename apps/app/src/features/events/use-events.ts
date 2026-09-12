@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 import { mockEvents } from './mock-data';
 import type { Event, EventStatus } from './types';
@@ -13,13 +13,22 @@ export const eventsQueryKey = ['events'] as const;
 // have, so swapping the body out later shouldn't change any call sites.
 let mockStore: Event[] = [...mockEvents];
 
+// Column list matches the Event type field-for-field (see types.ts's
+// comment — it was written to mirror this table exactly), so the rows
+// Supabase returns can be cast straight to Event with no mapping step.
+const EVENT_COLUMNS =
+  'id, title, description, starts_at, ends_at, location_name, location_address, is_virtual, luma_url, speakers, sponsors, topics, status, learnings';
+
 async function fetchEvents(): Promise<Event[]> {
   if (!isSupabaseConfigured) {
     return [...mockStore];
   }
-  // TODO(Phase 3): replace with a real Supabase query once a project is
-  // connected — `supabase.from('events').select('*').order('starts_at')`.
-  throw new Error('Supabase event fetching is not wired up yet.');
+  const { data, error } = await supabase!
+    .from('events')
+    .select(EVENT_COLUMNS)
+    .order('starts_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as unknown as Event[];
 }
 
 async function updateEventStatus(id: string, status: EventStatus): Promise<void> {
@@ -27,8 +36,8 @@ async function updateEventStatus(id: string, status: EventStatus): Promise<void>
     mockStore = mockStore.map((event) => (event.id === id ? { ...event, status } : event));
     return;
   }
-  // TODO(Phase 3): supabase.from('events').update({ status }).eq('id', id)
-  throw new Error('Supabase event updates are not wired up yet.');
+  const { error } = await supabase!.from('events').update({ status }).eq('id', id);
+  if (error) throw error;
 }
 
 async function updateLearnings(id: string, learnings: string): Promise<void> {
@@ -36,8 +45,11 @@ async function updateLearnings(id: string, learnings: string): Promise<void> {
     mockStore = mockStore.map((event) => (event.id === id ? { ...event, learnings } : event));
     return;
   }
-  // TODO(Phase 3): supabase.from('events').update({ learnings, learnings_updated_at: new Date().toISOString() }).eq('id', id)
-  throw new Error('Supabase learnings updates are not wired up yet.');
+  const { error } = await supabase!
+    .from('events')
+    .update({ learnings, learnings_updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
 }
 
 export function useEvents() {
