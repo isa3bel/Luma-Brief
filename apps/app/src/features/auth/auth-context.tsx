@@ -129,7 +129,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         });
         return { error: error?.message ?? null };
       },
-      // Fallback to the same email's 6-digit code instead of its link —
+      // Fallback to the same email's OTP code instead of its link —
       // the only path that actually works in Expo Go, since its exp://
       // deep link is dynamic per machine/session and can never be added to
       // Supabase's redirect allow-list (see getRedirectTo() above). Setting

@@ -46,7 +46,7 @@ export default function SignIn() {
     <View style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>Sign in</Text>
-        <Text style={styles.subtitle}>We&apos;ll email you a 6-digit code — no password needed.</Text>
+        <Text style={styles.subtitle}>We&apos;ll email you a sign-in code — no password needed.</Text>
         {isMockMode ? (
           <Text style={styles.mockNotice}>
             No Supabase project connected yet — this will sign you in with mock data instead of a
@@ -56,23 +56,28 @@ export default function SignIn() {
 
         {status === 'sent' ? (
           <>
-            <Text style={styles.sent}>Enter the 6-digit code we sent to {email}:</Text>
+            <Text style={styles.sent}>Enter the code we sent to {email}:</Text>
             <TextInput
               value={code}
               onChangeText={setCode}
-              placeholder="123456"
+              placeholder="Code from the email"
               keyboardType="number-pad"
               autoCapitalize="none"
-              maxLength={6}
+              // Deliberately not pinned to 6 — Supabase's actual email OTP
+              // length is a per-project setting (this project's turned out
+              // to be 8, confirmed against a real received email), so a
+              // hardcoded 6 was silently truncating input. 12 is just a
+              // generous ceiling against pasting garbage, not a real limit.
+              maxLength={12}
               style={styles.input}
             />
             {codeError ? <Text style={styles.error}>{codeError}</Text> : null}
             <Pressable
               onPress={handleVerifyCode}
-              disabled={codeStatus === 'verifying' || code.trim().length < 6}
+              disabled={codeStatus === 'verifying' || code.trim().length < 4}
               style={[
                 styles.secondaryCta,
-                (codeStatus === 'verifying' || code.trim().length < 6) && styles.ctaDisabled,
+                (codeStatus === 'verifying' || code.trim().length < 4) && styles.ctaDisabled,
               ]}>
               <Text style={styles.secondaryCtaText}>
                 {codeStatus === 'verifying' ? 'Verifying…' : 'Verify code'}
