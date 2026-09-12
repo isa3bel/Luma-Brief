@@ -1,11 +1,14 @@
-import { Redirect } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { GradientBackground } from '@/components/gradient-background';
 import { Colors, Radius } from '@/constants/design';
 import { useAuth } from '@/features/auth/auth-context';
 
 export default function SignIn() {
+  const router = useRouter();
   const { session, isMockMode, signInWithMagicLink, verifyEmailOtp } = useAuth();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
@@ -43,7 +46,16 @@ export default function SignIn() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
+      <GradientBackground />
+      <View style={styles.header}>
+        <Pressable onPress={() => router.push('/')} style={styles.headerLink} hitSlop={8}>
+          <MaterialIcons name="arrow-back" size={20} color={Colors.accent} />
+          <Text style={styles.headerLinkText}>LumaBrief</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>Sign in</Text>
         <Text style={styles.subtitle}>We&apos;ll email you a sign-in code — no password needed.</Text>
@@ -105,13 +117,33 @@ export default function SignIn() {
           </>
         )}
       </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: Colors.background },
-  card: { width: '100%', maxWidth: 360, gap: 12 },
+  root: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingTop: 20 },
+  headerLink: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
+  headerLinkText: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  // Transparent — GradientBackground sits behind this as a sibling.
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  card: {
+    width: '100%',
+    maxWidth: 360,
+    gap: 12,
+    backgroundColor: Colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.cardLarge,
+    padding: 28,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
   title: { fontSize: 24, fontWeight: '700', color: Colors.text },
   subtitle: { fontSize: 14, color: Colors.textSecondary, marginBottom: 8 },
   input: {

@@ -1,8 +1,8 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { GradientBackground } from '@/components/gradient-background';
 import { Colors, MaxWidth, Radius } from '@/constants/design';
 import { Fonts } from '@/constants/theme';
 import { useAuth } from '@/features/auth/auth-context';
@@ -47,83 +47,98 @@ export default function Landing() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.page}>
-      <LinearGradient colors={[Colors.navGradientTop, Colors.background]} style={styles.hero}>
-        <View style={styles.heroInner}>
-          <View style={styles.brandRow}>
-            <MaterialIcons name="auto-awesome" size={18} color={Colors.accent} />
-            <Text style={styles.brand}>LumaBrief</Text>
+    <View style={styles.root}>
+      <GradientBackground />
+      <ScrollView contentContainerStyle={styles.page}>
+        <View style={styles.hero}>
+          <View style={styles.heroInner}>
+            <View style={styles.brandRow}>
+              <MaterialIcons name="auto-awesome" size={18} color={Colors.accent} />
+              <Text style={styles.brand}>LumaBrief</Text>
+            </View>
+            <Text style={[styles.headline, isWide && styles.headlineWide]}>
+              Never lose what you learned at an event again.
+            </Text>
+            <Text style={styles.subheadline}>
+              LumaBrief pulls in every event from your Luma calendar, turns a quick swipe into a real
+              record of what you actually attended, and uses AI to turn your scattered notes into
+              takeaways worth remembering.
+            </Text>
+            <Pressable onPress={() => router.push('/sign-in')} style={styles.cta}>
+              <Text style={styles.ctaText}>Sign in</Text>
+              <MaterialIcons name="arrow-forward" size={18} color={Colors.surface} />
+            </Pressable>
           </View>
-          <Text style={[styles.headline, isWide && styles.headlineWide]}>
-            Never lose what you learned at an event again.
-          </Text>
-          <Text style={styles.subheadline}>
-            LumaBrief pulls in every event from your Luma calendar, turns a quick swipe into a real
-            record of what you actually attended, and uses AI to turn your scattered notes into
-            takeaways worth remembering.
-          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>How it works</Text>
+          <View style={[styles.steps, isWide && styles.stepsWide]}>
+            {STEPS.map((step) => (
+              <View key={step.title} style={[styles.stepCard, isWide && styles.stepCardWide]}>
+                <View style={styles.stepIcon}>
+                  <MaterialIcons name={step.icon} size={22} color={Colors.accent} />
+                </View>
+                <Text style={styles.stepTitle}>{step.title}</Text>
+                <Text style={styles.stepBody}>{step.body}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>From scattered notes to real takeaways</Text>
+          <View style={[styles.example, isWide && styles.exampleWide]}>
+            <View style={styles.exampleCard}>
+              <Text style={styles.exampleCardLabel}>Your quick notes</Text>
+              <Text style={styles.exampleBefore}>
+                - agentic ai everywhere{'\n'}- token cost is the real bottleneck{'\n'}- shadow ai — ppl
+                using personal accts{'\n'}- pm role shifting, build w/ eng directly
+              </Text>
+            </View>
+            <MaterialIcons
+              name={isWide ? 'arrow-forward' : 'arrow-downward'}
+              size={20}
+              color={Colors.textSecondary}
+            />
+            <View style={[styles.exampleCard, styles.exampleCardAfter]}>
+              <Text style={[styles.exampleCardLabel, styles.exampleCardLabelAfter]}>
+                LumaBrief&apos;s takeaway
+              </Text>
+              <Text style={styles.exampleAfter}>
+                Agentic AI is the dominant theme this month — and the real bottleneck is cost, not
+                capability, with teams overusing frontier models where a smaller one would do.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.finalCta}>
+          <Text style={styles.finalCtaTitle}>Start building your own record.</Text>
           <Pressable onPress={() => router.push('/sign-in')} style={styles.cta}>
             <Text style={styles.ctaText}>Sign in</Text>
             <MaterialIcons name="arrow-forward" size={18} color={Colors.surface} />
           </Pressable>
         </View>
-      </LinearGradient>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>How it works</Text>
-        <View style={[styles.steps, isWide && styles.stepsWide]}>
-          {STEPS.map((step) => (
-            <View key={step.title} style={[styles.stepCard, isWide && styles.stepCardWide]}>
-              <View style={styles.stepIcon}>
-                <MaterialIcons name={step.icon} size={22} color={Colors.accent} />
-              </View>
-              <Text style={styles.stepTitle}>{step.title}</Text>
-              <Text style={styles.stepBody}>{step.body}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>From scattered notes to real takeaways</Text>
-        <View style={[styles.example, isWide && styles.exampleWide]}>
-          <View style={styles.exampleCard}>
-            <Text style={styles.exampleCardLabel}>Your quick notes</Text>
-            <Text style={styles.exampleBefore}>
-              - agentic ai everywhere{'\n'}- token cost is the real bottleneck{'\n'}- shadow ai — ppl
-              using personal accts{'\n'}- pm role shifting, build w/ eng directly
-            </Text>
+        <View style={styles.footer}>
+          <View style={styles.footerBrandRow}>
+            <MaterialIcons name="auto-awesome" size={16} color={Colors.accent} />
+            <Text style={styles.footerBrand}>LumaBrief</Text>
           </View>
-          <MaterialIcons
-            name={isWide ? 'arrow-forward' : 'arrow-downward'}
-            size={20}
-            color={Colors.textSecondary}
-          />
-          <View style={[styles.exampleCard, styles.exampleCardAfter]}>
-            <Text style={[styles.exampleCardLabel, styles.exampleCardLabelAfter]}>LumaBrief&apos;s takeaway</Text>
-            <Text style={styles.exampleAfter}>
-              Agentic AI is the dominant theme this month — and the real bottleneck is cost, not
-              capability, with teams overusing frontier models where a smaller one would do.
-            </Text>
-          </View>
+          <Text style={styles.footerTagline}>A personal record of the events worth remembering.</Text>
+          <Text style={styles.footerMeta}>© {new Date().getFullYear()} LumaBrief</Text>
         </View>
-      </View>
-
-      <View style={styles.finalCta}>
-        <Text style={styles.finalCtaTitle}>Start building your own record.</Text>
-        <Pressable onPress={() => router.push('/sign-in')} style={styles.cta}>
-          <Text style={styles.ctaText}>Sign in</Text>
-          <MaterialIcons name="arrow-forward" size={18} color={Colors.surface} />
-        </Pressable>
-      </View>
-
-      <Text style={styles.footer}>LumaBrief</Text>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: Colors.background, flexGrow: 1 },
+  root: { flex: 1 },
+  // Transparent — GradientBackground sits behind this as a sibling, fixed
+  // in place while this ScrollView's content scrolls over it.
+  page: { flexGrow: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.background },
 
   hero: { paddingHorizontal: 24, paddingTop: 48, paddingBottom: 56 },
@@ -158,6 +173,7 @@ const styles = StyleSheet.create({
   stepsWide: { flexDirection: 'row' },
   stepCard: {
     flex: 1,
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
     borderRadius: Radius.cardLarge,
@@ -181,6 +197,7 @@ const styles = StyleSheet.create({
   exampleWide: { flexDirection: 'row', alignItems: 'stretch' },
   exampleCard: {
     flex: 1,
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
     borderRadius: Radius.cardLarge,
@@ -196,5 +213,17 @@ const styles = StyleSheet.create({
   finalCta: { alignItems: 'center', gap: 16, paddingHorizontal: 24, paddingVertical: 48 },
   finalCtaTitle: { fontSize: 22, fontWeight: '700', color: Colors.text, textAlign: 'center' },
 
-  footer: { fontSize: 12, color: Colors.textTertiary, textAlign: 'center', paddingBottom: 32 },
+  footer: {
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  footerBrandRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  footerBrand: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  footerTagline: { fontSize: 13, color: Colors.textSecondary },
+  footerMeta: { fontSize: 12, color: Colors.textTertiary, marginTop: 4 },
 });
