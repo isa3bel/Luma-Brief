@@ -12,6 +12,21 @@ import { corsHeaders, json } from '../_shared/cors.ts';
 // LinkedIn deprecates it (they give ~12 months' notice per version).
 const LINKEDIN_API_VERSION = '202608';
 
+// The Posts API's "commentary" field isn't plain text — it's LinkedIn's own
+// "little" rich-text format (mentions, hashtags, bold/italic). That format
+// reserves \ | { } @ [ ] ( ) < > * _ ~ , and ANY occurrence of one of these
+// — even outside an actual mention or hashtag — has to be backslash-escaped
+// or LinkedIn's parser breaks and silently drops everything from that
+// point on. Confirmed against a real published post that cut off exactly
+// at the first unescaped "(" in an ordinary parenthetical remark.
+// # is deliberately left unescaped: unlike the others it's genuinely
+// useful unescaped, since a bare #word (exactly what this app's own
+// drafts end with) is how LinkedIn renders a real, clickable hashtag —
+// escaping it would turn every intentional hashtag into inert text.
+function escapeLittleText(text: string): string {
+  return text.replace(/[\\|{}@\[\]()<>*_~]/g, (char) => `\\${char}`);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -62,7 +77,7 @@ Deno.serve(async (req: Request) => {
         },
         body: JSON.stringify({
           author: connection.member_urn,
-          commentary: text,
+          commentary: escapeLittleText(text),
           visibility: 'PUBLIC',
           distribution: { feedDistribution: 'MAIN_FEED', targetEntities: [], thirdPartyDistributionChannels: [] },
           lifecycleState: 'PUBLISHED',
