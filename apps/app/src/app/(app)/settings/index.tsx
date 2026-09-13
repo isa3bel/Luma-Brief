@@ -5,6 +5,7 @@ import { Colors, Radius } from '@/constants/design';
 import { useLumaSync } from '@/features/events/use-luma-sync';
 import { useConnectLinkedin, useLinkedinConnection } from '@/features/linkedin/use-linkedin';
 import {
+  useSaveGranolaApiKey,
   useSaveLinkedinPostInstructions,
   useSaveLumaIcalUrl,
   useUserSettings,
@@ -32,9 +33,11 @@ export default function Settings() {
   const { data: linkedin, isLoading: linkedinLoading } = useLinkedinConnection();
   const connectLinkedin = useConnectLinkedin();
   const savePostInstructions = useSaveLinkedinPostInstructions();
+  const saveGranolaKey = useSaveGranolaApiKey();
 
   const [icalUrl, setIcalUrl] = useState('');
   const [postInstructions, setPostInstructions] = useState('');
+  const [granolaKey, setGranolaKey] = useState('');
 
   // Seed the input once real data arrives, same pattern as the event
   // detail screen's Learnings textarea — avoids a save-in-flight getting
@@ -46,6 +49,10 @@ export default function Settings() {
   useEffect(() => {
     if (settings) setPostInstructions(settings.linkedinPostInstructions ?? '');
   }, [settings?.linkedinPostInstructions]);
+
+  useEffect(() => {
+    if (settings) setGranolaKey(settings.granolaApiKey ?? '');
+  }, [settings?.granolaApiKey]);
 
   if (isLoading) {
     return (
@@ -187,6 +194,39 @@ export default function Settings() {
             {savePostInstructions.error instanceof Error
               ? savePostInstructions.error.message
               : 'Failed to save.'}
+          </Text>
+        ) : null}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Granola</Text>
+        <Text style={styles.explainerText}>
+          Find this in Granola under Settings → Connectors → API keys. Once connected, an
+          event&apos;s page can pull in a matching Granola note&apos;s summary as Learnings.
+        </Text>
+        <TextInput
+          value={granolaKey}
+          onChangeText={setGranolaKey}
+          placeholder="Paste your Granola API key"
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry
+          style={styles.input}
+        />
+        <Pressable
+          onPress={() => saveGranolaKey.mutate(granolaKey.trim())}
+          disabled={saveGranolaKey.isPending || !granolaKey.trim()}
+          style={[
+            styles.primaryButton,
+            (saveGranolaKey.isPending || !granolaKey.trim()) && styles.buttonDisabled,
+          ]}>
+          <Text style={styles.primaryButtonText}>{saveGranolaKey.isPending ? 'Saving…' : 'Save'}</Text>
+        </Pressable>
+        {settings?.granolaApiKey ? <Text style={styles.successText}>Connected.</Text> : null}
+        {saveGranolaKey.isSuccess ? <Text style={styles.successText}>Saved.</Text> : null}
+        {saveGranolaKey.isError ? (
+          <Text style={styles.errorText}>
+            {saveGranolaKey.error instanceof Error ? saveGranolaKey.error.message : 'Failed to save.'}
           </Text>
         ) : null}
       </View>

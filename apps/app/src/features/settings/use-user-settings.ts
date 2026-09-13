@@ -10,6 +10,7 @@ export type UserSettings = {
   timezone: string;
   lastLumaSyncAt: string | null;
   linkedinPostInstructions: string | null;
+  granolaApiKey: string | null;
 };
 
 export const userSettingsQueryKey = ['user-settings'] as const;
@@ -23,7 +24,7 @@ async function fetchUserSettings(): Promise<UserSettings | null> {
 
   const { data, error } = await supabase!
     .from('user_settings')
-    .select('luma_ical_url, timezone, last_luma_sync_at, linkedin_post_instructions')
+    .select('luma_ical_url, timezone, last_luma_sync_at, linkedin_post_instructions, granola_api_key')
     .eq('user_id', user.id)
     .maybeSingle();
   if (error) throw error;
@@ -33,6 +34,7 @@ async function fetchUserSettings(): Promise<UserSettings | null> {
     timezone: data?.timezone ?? 'America/Los_Angeles',
     lastLumaSyncAt: data?.last_luma_sync_at ?? null,
     linkedinPostInstructions: data?.linkedin_post_instructions ?? null,
+    granolaApiKey: data?.granola_api_key ?? null,
   };
 }
 
@@ -80,6 +82,27 @@ export function useSaveLinkedinPostInstructions() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: saveLinkedinPostInstructions,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: userSettingsQueryKey }),
+  });
+}
+
+async function saveGranolaApiKey(key: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error('Supabase is not configured.');
+  const {
+    data: { user },
+  } = await supabase!.auth.getUser();
+  if (!user) throw new Error('Not signed in.');
+
+  const { error } = await supabase!
+    .from('user_settings')
+    .upsert({ user_id: user.id, granola_api_key: key || null }, { onConflict: 'user_id' });
+  if (error) throw error;
+}
+
+export function useSaveGranolaApiKey() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: saveGranolaApiKey,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: userSettingsQueryKey }),
   });
 }

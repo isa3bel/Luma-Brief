@@ -19,6 +19,7 @@ import { useEvent, useUpdateEventStatus, useUpdateLearnings } from '@/features/e
 import type { EventStatus } from '@/features/events/types';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 import { useDraftLinkedinPost, useLinkedinConnection, usePostToLinkedin } from '@/features/linkedin/use-linkedin';
+import { useImportGranolaNote, useSearchGranolaNotes, type GranolaNoteCandidate } from '@/features/granola/use-granola';
 
 // Statuses that actually show up on the Calendar (see CALENDAR_STATUSES in
 // dashboard/index.tsx) — the only ones where "remove from the calendar"
@@ -44,6 +45,12 @@ export default function EventDetail() {
   const postToLinkedin = usePostToLinkedin();
   const [linkedinDraft, setLinkedinDraft] = useState<string | null>(null);
   const [linkedinModalOpen, setLinkedinModalOpen] = useState(false);
+
+  const searchGranola = useSearchGranolaNotes();
+  const importGranola = useImportGranolaNote();
+  const [granolaModalOpen, setGranolaModalOpen] = useState(false);
+  const [granolaNotes, setGranolaNotes] = useState<GranolaNoteCandidate[] | null>(null);
+  const [importingGranolaId, setImportingGranolaId] = useState<string | null>(null);
 
   // Seed the local textarea from the fetched event exactly once it arrives,
   // rather than on every refetch — otherwise an in-flight autosave could
@@ -90,6 +97,40 @@ export default function EventDetail() {
     postToLinkedin.mutate(
       { eventId: event.id, text: linkedinDraft },
       { onSuccess: () => setLinkedinModalOpen(false) }
+    );
+  };
+
+  const openGranolaModal = () => {
+    setGranolaModalOpen(true);
+    if (!event) return;
+    searchGranola.mutate(event.id, { onSuccess: (notes) => setGranolaNotes(notes) });
+  };
+
+  const closeGranolaModal = () => {
+    setGranolaModalOpen(false);
+    setGranolaNotes(null);
+    searchGranola.reset();
+    importGranola.reset();
+  };
+
+  const handleImportGranolaNote = (granolaNoteId: string) => {
+    if (!event) return;
+    setImportingGranolaId(granolaNoteId);
+    importGranola.mutate(
+      { eventId: event.id, granolaNoteId },
+      {
+        // Flip this one row to "Imported" locally rather than re-running the
+        // search — the event refetch triggered by the hook itself (see
+        // use-granola.ts) is what actually updates the Learnings text shown
+        // on the page underneath.
+        onSuccess: () => {
+          setGranolaNotes((prev) =>
+            prev ? prev.map((n) => (n.id === granolaNoteId ? { ...n, alreadyImported: true } : n)) : prev
+          );
+          setImportingGranolaId(null);
+        },
+        onError: () => setImportingGranolaId(null),
+      }
     );
   };
 
@@ -200,6 +241,17 @@ export default function EventDetail() {
           </View>
         </Section>
       ) : null}
+
+      <Section title="Granola Notes">
+        <Text style={styles.explainerText}>
+          Pull in a Granola note&apos;s AI summary as a starting point for Learnings below —
+          appended, never replacing what&apos;s already there, so you can attach more than one
+          over time.
+        </Text>
+        <Pressable onPress={openGranolaModal} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>Find Granola notes</Text>
+        </Pressable>
+      </Section>
 
       <Section
         title="Learnings"
@@ -343,6 +395,81 @@ export default function EventDetail() {
           </Pressable>
         </Modal>
       ) : null}
+
+      {granolaModalOpen ? (
+        <Modal transparent animationType="fade" onRequestClose={closeGranolaModal}>
+          <Pressable style={styles.modalBackdrop} onPress={closeGranolaModal}>
+            <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Granola notes near this event</Text>
+                <Pressable onPress={closeGranolaModal} hitSlop={8}>
+                  <MaterialIcons name="close" size={22} color={Colors.textSecondary} />
+                </Pressable>
+              </View>
+
+              {searchGranola.isPending ? (
+                <View style={styles.modalLoading}>
+                  <ActivityIndicator />
+                  <Text style={styles.explainerText}>Looking for notes around this event&apos;s date…</Text>
+                </View>
+              ) : searchGranola.isError ? (
+                <>
+                  <Text style={styles.errorText}>
+                    {searchGranola.error instanceof Error ? searchGranola.error.message : 'Search failed.'}
+                  </Text>
+                  <Pressable onPress={openGranolaModal} style={styles.secondaryButton}>
+                    <Text style={styles.secondaryButtonText}>Try again</Text>
+                  </Pressable>
+                </>
+              ) : granolaNotes && granolaNotes.length > 0 ? (
+                <ScrollView style={styles.granolaList}>
+                  {granolaNotes.map((note) => (
+                    <View key={note.id} style={styles.granolaRow}>
+                      <View style={styles.granolaRowMain}>
+                        <Text style={styles.granolaRowTitle} numberOfLines={1}>
+                          {note.title}
+                        </Text>
+                        <Text style={styles.metaText}>
+                          {new Date(note.createdAt).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                          })}
+                        </Text>
+                      </View>
+                      {note.alreadyImported ? (
+                        <Text style={styles.successText}>Imported</Text>
+                      ) : (
+                        <Pressable
+                          onPress={() => handleImportGranolaNote(note.id)}
+                          disabled={importingGranolaId === note.id}
+                          style={[
+                            styles.secondaryButton,
+                            importingGranolaId === note.id && styles.buttonDisabled,
+                          ]}>
+                          <Text style={styles.secondaryButtonText}>
+                            {importingGranolaId === note.id ? 'Importing…' : 'Import'}
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : (
+                <Text style={styles.explainerText}>
+                  No Granola notes found within a few days of this event.
+                </Text>
+              )}
+              {importGranola.isError ? (
+                <Text style={styles.errorText}>
+                  {importGranola.error instanceof Error ? importGranola.error.message : 'Import failed.'}
+                </Text>
+              ) : null}
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
     </ScrollView>
   );
 }
@@ -418,6 +545,7 @@ const styles = StyleSheet.create({
   saveState: { fontSize: 12, color: Colors.textSecondary },
   explainerText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
   errorText: { fontSize: 12, color: Colors.danger },
+  successText: { fontSize: 12, color: Colors.success },
   linkText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
   linkedinActions: { flexDirection: 'row', gap: 10 },
   primaryButton: {
@@ -467,4 +595,16 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: Colors.text,
   },
+  granolaList: { maxHeight: 320 },
+  granolaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  granolaRowMain: { flex: 1, gap: 2 },
+  granolaRowTitle: { fontSize: 15, fontWeight: '600', color: Colors.text },
 });
