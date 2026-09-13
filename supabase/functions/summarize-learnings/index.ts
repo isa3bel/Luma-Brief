@@ -92,13 +92,18 @@ Deno.serve(async (req: Request) => {
       const anthropic = new Anthropic({ apiKey });
       const response = await anthropic.messages.create({
         model: MODEL,
-        // No thinking/effort config — this is a short, straightforward
-        // generation task with nothing to reason through. Confirmed
-        // against a real truncated output that output_config.effort only
-        // means anything paired with thinking: {type: 'adaptive'}, and
-        // thinking tokens count against the same max_tokens budget as the
-        // visible response — effort alone here was silently eating into
-        // the 1024-token budget meant for the summary itself.
+        // Explicitly disabled, not just omitted — Claude Sonnet 5 defaults
+        // to "high" effort on the API when output_config is left out
+        // entirely (confirmed in Anthropic's own docs), which still
+        // thinks on anything it judges non-trivial, and thinking tokens
+        // share the same max_tokens budget as the visible response.
+        // Removing the effort param alone didn't fix draft-linkedin-post's
+        // identical truncation bug for exactly this reason — it silently
+        // reverted to a *higher* default than the "medium" it replaced.
+        // Explicitly disabling thinking is the only way to deterministically
+        // guarantee zero reasoning-token overhead for a task this simple.
+        thinking: { type: 'disabled' },
+        output_config: { effort: 'low' },
         max_tokens: 1536,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: buildUserMessage(withNotes) }],
