@@ -20,6 +20,7 @@ import type { EventStatus } from '@/features/events/types';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 import { useDraftLinkedinPost, useLinkedinConnection, usePostToLinkedin } from '@/features/linkedin/use-linkedin';
 import { useImportGranolaNote, useSearchGranolaNotes, type GranolaNoteCandidate } from '@/features/granola/use-granola';
+import { useUserSettings } from '@/features/settings/use-user-settings';
 
 // Statuses that actually show up on the Calendar (see CALENDAR_STATUSES in
 // dashboard/index.tsx) — the only ones where "remove from the calendar"
@@ -46,6 +47,7 @@ export default function EventDetail() {
   const [linkedinDraft, setLinkedinDraft] = useState<string | null>(null);
   const [linkedinModalOpen, setLinkedinModalOpen] = useState(false);
 
+  const { data: userSettings } = useUserSettings();
   const searchGranola = useSearchGranolaNotes();
   const importGranola = useImportGranolaNote();
   const [granolaModalOpen, setGranolaModalOpen] = useState(false);
@@ -242,16 +244,18 @@ export default function EventDetail() {
         </Section>
       ) : null}
 
-      <Section title="Granola Notes">
-        <Text style={styles.explainerText}>
-          Pull in a Granola note&apos;s AI summary as a starting point for Learnings below —
-          appended, never replacing what&apos;s already there, so you can attach more than one
-          over time.
-        </Text>
-        <Pressable onPress={openGranolaModal} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Find Granola notes</Text>
-        </Pressable>
-      </Section>
+      {userSettings?.granolaApiKey ? (
+        <Section title="Granola Notes">
+          <Text style={styles.explainerText}>
+            Pull in a Granola note&apos;s AI summary as a starting point for Learnings below —
+            appended, never replacing what&apos;s already there, so you can attach more than one
+            over time.
+          </Text>
+          <Pressable onPress={openGranolaModal} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Find Granola notes</Text>
+          </Pressable>
+        </Section>
+      ) : null}
 
       <Section
         title="Learnings"
