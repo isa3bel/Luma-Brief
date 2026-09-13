@@ -113,6 +113,36 @@ export default function Landing() {
           </View>
         </View>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Share what you learned</Text>
+          <View style={[styles.share, isWide && styles.shareWide]}>
+            <View style={styles.shareCopy}>
+              <Text style={styles.shareTitle}>One click from private notes to a LinkedIn post.</Text>
+              <Text style={styles.shareBody}>
+                Turn any event&apos;s Learnings into a short, first-person post worth sharing with
+                your network — drafted for you, yours to edit, and posted without ever leaving the
+                app.
+              </Text>
+            </View>
+            <View style={styles.postPreview}>
+              <View style={styles.postPreviewHeader}>
+                <View style={styles.postPreviewAvatar}>
+                  <MaterialIcons name="person" size={20} color={Colors.surface} />
+                </View>
+                <View>
+                  <Text style={styles.postPreviewName}>You</Text>
+                  <Text style={styles.postPreviewCaption}>Shared from LumaBrief</Text>
+                </View>
+              </View>
+              <Text style={styles.postPreviewBody}>
+                The PM/eng line keeps blurring — in a good way. Builders who can also scope and
+                ship are changing how teams actually work together.
+              </Text>
+              <Text style={styles.postPreviewHashtags}>#ProductManagement #AI</Text>
+            </View>
+          </View>
+        </View>
+
         <View style={styles.finalCta}>
           <Text style={styles.finalCtaTitle}>Start building your own record.</Text>
           <Pressable onPress={() => router.push('/sign-in')} style={styles.cta}>
@@ -209,6 +239,35 @@ const styles = StyleSheet.create({
   exampleCardLabelAfter: { color: Colors.accent },
   exampleBefore: { fontSize: 13, lineHeight: 20, color: Colors.textSecondary, fontFamily: Fonts.mono },
   exampleAfter: { fontSize: 15, lineHeight: 22, color: Colors.text },
+
+  share: { gap: 20, alignItems: 'center' },
+  shareWide: { flexDirection: 'row', alignItems: 'center' },
+  shareCopy: { flex: 1, gap: 8 },
+  shareTitle: { fontSize: 20, fontWeight: '700', color: Colors.text, lineHeight: 26 },
+  shareBody: { fontSize: 15, lineHeight: 22, color: Colors.textSecondary },
+  postPreview: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: Colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: Radius.cardLarge,
+    padding: 18,
+    gap: 10,
+  },
+  postPreviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  postPreviewAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  postPreviewName: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  postPreviewCaption: { fontSize: 12, color: Colors.textSecondary },
+  postPreviewBody: { fontSize: 14, lineHeight: 21, color: Colors.text },
+  postPreviewHashtags: { fontSize: 13, color: Colors.accent, fontWeight: '600' },
 
   finalCta: { alignItems: 'center', gap: 16, paddingHorizontal: 24, paddingVertical: 48 },
   finalCtaTitle: { fontSize: 22, fontWeight: '700', color: Colors.text, textAlign: 'center' },
