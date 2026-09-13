@@ -1,24 +1,28 @@
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 
 import { Colors } from '@/constants/design';
 
-// LinkedIn redirects here after the user grants (or denies) access. In the
-// normal case, expo-web-browser's openAuthSessionAsync (see
-// features/linkedin/use-linkedin.ts) detects this exact URL being loaded
-// and closes the browser/popup itself, resolving back in the code that
-// opened it — which is what actually completes the connection. This page
-// existing at all is mostly just so that redirect has somewhere real to
-// land (and doesn't 404) if the browser renders it before that detection
-// kicks in, or if something about a given browser's popup handling doesn't
-// close it automatically.
+// LinkedIn redirects here after the user grants (or denies) access. This
+// page's only real job is calling WebBrowser.maybeCompleteAuthSession() —
+// without it, expo-web-browser's openAuthSessionAsync has no way to know
+// the popup ever got here at all: on web it isn't polling this page's URL
+// from the opener (that's blocked cross-origin anyway), it's waiting for
+// *this page* to read the redirect back out of localStorage and
+// postMessage it to window.opener. Confirmed against a real failed
+// connection attempt: without this call the popup just sits open forever,
+// and manually closing it reports "cancelled" — it's not a timing issue,
+// nothing was ever going to complete it.
 export default function LinkedinCallback() {
+  useEffect(() => {
+    WebBrowser.maybeCompleteAuthSession();
+  }, []);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Connecting to LinkedIn…</Text>
-      <Text style={styles.body}>
-        This should close on its own in a moment. If it doesn&apos;t, you can close this tab and
-        return to the app — check Settings to confirm the connection went through.
-      </Text>
+      <Text style={styles.body}>This should close on its own in a moment.</Text>
     </View>
   );
 }
