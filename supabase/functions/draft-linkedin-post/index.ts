@@ -107,8 +107,15 @@ Deno.serve(async (req: Request) => {
       const anthropic = new Anthropic({ apiKey });
       const response = await anthropic.messages.create({
         model: MODEL,
-        max_tokens: 1024,
-        output_config: { effort: 'medium' },
+        // No thinking/effort config — this is a short, straightforward
+        // generation task with nothing to reason through. Confirmed
+        // against a real truncated LinkedIn post that output_config.effort
+        // only means anything paired with thinking: {type: 'adaptive'},
+        // and thinking tokens count against the same max_tokens budget as
+        // the visible response — effort alone here was silently eating
+        // into the 1024-token budget meant for the draft itself, cutting
+        // it off mid-sentence.
+        max_tokens: 1536,
         system: buildSystemPrompt(settings?.linkedin_post_instructions ?? null),
         messages: [{ role: 'user', content: userMessage }],
       });

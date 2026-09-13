@@ -240,12 +240,20 @@ export default function EventDetail() {
                 })}
                 .
               </Text>
-              <Pressable
-                onPress={() =>
-                  Linking.openURL(`https://www.linkedin.com/feed/update/${event.linkedin_post_urn}/`)
-                }>
-                <Text style={styles.linkText}>View on LinkedIn →</Text>
-              </Pressable>
+              <View style={styles.linkedinActions}>
+                <Pressable
+                  onPress={() =>
+                    Linking.openURL(`https://www.linkedin.com/feed/update/${event.linkedin_post_urn}/`)
+                  }>
+                  <Text style={styles.linkText}>View on LinkedIn →</Text>
+                </Pressable>
+                {/* In case the post above got deleted on LinkedIn itself —
+                    this drafts and posts fresh, overwriting the old
+                    urn/timestamp with whatever the new post gets. */}
+                <Pressable onPress={openLinkedinModal} style={styles.secondaryButton}>
+                  <Text style={styles.secondaryButtonText}>Post again</Text>
+                </Pressable>
+              </View>
             </>
           ) : (
             <Pressable onPress={openLinkedinModal} style={styles.secondaryButton}>
