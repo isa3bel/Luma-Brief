@@ -1,7 +1,17 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { Colors, Radius, StatusColors, StatusLabel } from '@/constants/design';
 import { formatEventDateTime } from '@/features/events/format';
@@ -33,6 +43,7 @@ export default function EventDetail() {
   const draftPost = useDraftLinkedinPost();
   const postToLinkedin = usePostToLinkedin();
   const [linkedinDraft, setLinkedinDraft] = useState<string | null>(null);
+  const [linkedinModalOpen, setLinkedinModalOpen] = useState(false);
 
   // Seed the local textarea from the fetched event exactly once it arrives,
   // rather than on every refetch — otherwise an in-flight autosave could
@@ -62,11 +73,23 @@ export default function EventDetail() {
     draftPost.mutate(event.id, { onSuccess: (draft) => setLinkedinDraft(draft) });
   };
 
+  const openLinkedinModal = () => {
+    setLinkedinModalOpen(true);
+    handleDraftLinkedinPost();
+  };
+
+  const closeLinkedinModal = () => {
+    setLinkedinModalOpen(false);
+    setLinkedinDraft(null);
+    draftPost.reset();
+    postToLinkedin.reset();
+  };
+
   const handlePostToLinkedin = () => {
     if (!event || !linkedinDraft?.trim()) return;
     postToLinkedin.mutate(
       { eventId: event.id, text: linkedinDraft },
-      { onSuccess: () => setLinkedinDraft(null) }
+      { onSuccess: () => setLinkedinModalOpen(false) }
     );
   };
 
@@ -224,64 +247,93 @@ export default function EventDetail() {
                 <Text style={styles.linkText}>View on LinkedIn →</Text>
               </Pressable>
             </>
-          ) : linkedinDraft !== null ? (
-            <>
-              <TextInput
-                value={linkedinDraft}
-                onChangeText={setLinkedinDraft}
-                multiline
-                textAlignVertical="top"
-                style={styles.learningsInput}
-              />
-              {!linkedin?.connected ? (
-                <Text style={styles.explainerText}>Connect LinkedIn in Settings before posting.</Text>
-              ) : null}
-              {postToLinkedin.isError ? (
-                <Text style={styles.errorText}>
-                  {postToLinkedin.error instanceof Error ? postToLinkedin.error.message : 'Failed to post.'}
-                </Text>
-              ) : null}
-              <View style={styles.linkedinActions}>
-                <Pressable
-                  onPress={handleDraftLinkedinPost}
-                  disabled={draftPost.isPending}
-                  style={[styles.secondaryButton, draftPost.isPending && styles.buttonDisabled]}>
-                  <Text style={styles.secondaryButtonText}>
-                    {draftPost.isPending ? 'Regenerating…' : 'Regenerate'}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={handlePostToLinkedin}
-                  disabled={postToLinkedin.isPending || !linkedinDraft.trim()}
-                  style={[
-                    styles.primaryButton,
-                    (postToLinkedin.isPending || !linkedinDraft.trim()) && styles.buttonDisabled,
-                  ]}>
-                  <Text style={styles.primaryButtonText}>
-                    {postToLinkedin.isPending ? 'Posting…' : 'Post to LinkedIn'}
-                  </Text>
-                </Pressable>
-              </View>
-            </>
           ) : (
-            <>
-              <Text style={styles.explainerText}>Turn your Learnings notes above into a LinkedIn post.</Text>
-              <Pressable
-                onPress={handleDraftLinkedinPost}
-                disabled={draftPost.isPending}
-                style={[styles.secondaryButton, draftPost.isPending && styles.buttonDisabled]}>
-                <Text style={styles.secondaryButtonText}>
-                  {draftPost.isPending ? 'Drafting…' : 'Draft a LinkedIn post'}
-                </Text>
-              </Pressable>
-              {draftPost.isError ? (
-                <Text style={styles.errorText}>
-                  {draftPost.error instanceof Error ? draftPost.error.message : 'Failed to draft.'}
-                </Text>
-              ) : null}
-            </>
+            <Pressable onPress={openLinkedinModal} style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>Share on LinkedIn</Text>
+            </Pressable>
           )}
         </Section>
+      ) : null}
+
+      {linkedinModalOpen ? (
+        // Conditionally mounted rather than an always-mounted
+        // <Modal visible={...}> — same reasoning as calendar-view.tsx's day
+        // picker: unmounting on close removes it immediately instead of
+        // depending on Modal's own hide transition.
+        <Modal transparent animationType="fade" onRequestClose={closeLinkedinModal}>
+          <Pressable style={styles.modalBackdrop} onPress={closeLinkedinModal}>
+            <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Share on LinkedIn</Text>
+                <Pressable onPress={closeLinkedinModal} hitSlop={8}>
+                  <MaterialIcons name="close" size={22} color={Colors.textSecondary} />
+                </Pressable>
+              </View>
+
+              {draftPost.isPending && linkedinDraft === null ? (
+                <View style={styles.modalLoading}>
+                  <ActivityIndicator />
+                  <Text style={styles.explainerText}>Drafting from your Learnings notes…</Text>
+                </View>
+              ) : draftPost.isError && linkedinDraft === null ? (
+                <>
+                  <Text style={styles.errorText}>
+                    {draftPost.error instanceof Error ? draftPost.error.message : 'Failed to draft.'}
+                  </Text>
+                  <Pressable onPress={handleDraftLinkedinPost} style={styles.secondaryButton}>
+                    <Text style={styles.secondaryButtonText}>Try again</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    value={linkedinDraft ?? ''}
+                    onChangeText={setLinkedinDraft}
+                    multiline
+                    textAlignVertical="top"
+                    style={styles.modalTextarea}
+                  />
+                  {!linkedin?.connected ? (
+                    <Text style={styles.explainerText}>Connect LinkedIn in Settings before posting.</Text>
+                  ) : null}
+                  {draftPost.isError ? (
+                    <Text style={styles.errorText}>
+                      {draftPost.error instanceof Error ? draftPost.error.message : 'Failed to regenerate.'}
+                    </Text>
+                  ) : null}
+                  {postToLinkedin.isError ? (
+                    <Text style={styles.errorText}>
+                      {postToLinkedin.error instanceof Error
+                        ? postToLinkedin.error.message
+                        : 'Failed to post.'}
+                    </Text>
+                  ) : null}
+                  <View style={styles.linkedinActions}>
+                    <Pressable
+                      onPress={handleDraftLinkedinPost}
+                      disabled={draftPost.isPending}
+                      style={[styles.secondaryButton, draftPost.isPending && styles.buttonDisabled]}>
+                      <Text style={styles.secondaryButtonText}>
+                        {draftPost.isPending ? 'Regenerating…' : 'Regenerate'}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={handlePostToLinkedin}
+                      disabled={postToLinkedin.isPending || !linkedinDraft?.trim()}
+                      style={[
+                        styles.primaryButton,
+                        (postToLinkedin.isPending || !linkedinDraft?.trim()) && styles.buttonDisabled,
+                      ]}>
+                      <Text style={styles.primaryButtonText}>
+                        {postToLinkedin.isPending ? 'Posting…' : 'Post to LinkedIn'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
       ) : null}
     </ScrollView>
   );
@@ -378,4 +430,33 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: { color: Colors.accent, fontSize: 14, fontWeight: '600' },
   buttonDisabled: { opacity: 0.5 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '85%',
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    padding: 20,
+    gap: 12,
+  },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: Colors.text },
+  modalLoading: { alignItems: 'center', gap: 10, paddingVertical: 24 },
+  modalTextarea: {
+    minHeight: 180,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderInput,
+    borderRadius: Radius.sm,
+    padding: 12,
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.text,
+  },
 });

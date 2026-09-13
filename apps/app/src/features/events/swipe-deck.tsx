@@ -156,9 +156,14 @@ const DECK_HEIGHT = 320;
 const styles = StyleSheet.create({
   deck: { height: DECK_HEIGHT },
   cardWrapper: { ...StyleSheet.absoluteFill },
+  // top: 68, not up at the same 12-52px band the corner buttons occupy —
+  // the badge's own rotation (±12deg) pushes its rendered bounding box out
+  // wider than its literal top/left anchor suggests, so at the buttons'
+  // old top:20 it visibly collided with (and covered) the corner X/check
+  // circles rather than just sitting near them.
   badge: {
     position: 'absolute',
-    top: 20,
+    top: 68,
     borderWidth: 3,
     borderRadius: 8,
     paddingVertical: 4,

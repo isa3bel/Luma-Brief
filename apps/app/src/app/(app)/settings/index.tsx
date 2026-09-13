@@ -4,7 +4,11 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { Colors, Radius } from '@/constants/design';
 import { useLumaSync } from '@/features/events/use-luma-sync';
 import { useConnectLinkedin, useLinkedinConnection } from '@/features/linkedin/use-linkedin';
-import { useSaveLumaIcalUrl, useUserSettings } from '@/features/settings/use-user-settings';
+import {
+  useSaveLinkedinPostInstructions,
+  useSaveLumaIcalUrl,
+  useUserSettings,
+} from '@/features/settings/use-user-settings';
 
 function formatExpiry(iso: string | null) {
   if (!iso) return '';
@@ -27,8 +31,10 @@ export default function Settings() {
   const lumaSync = useLumaSync();
   const { data: linkedin, isLoading: linkedinLoading } = useLinkedinConnection();
   const connectLinkedin = useConnectLinkedin();
+  const savePostInstructions = useSaveLinkedinPostInstructions();
 
   const [icalUrl, setIcalUrl] = useState('');
+  const [postInstructions, setPostInstructions] = useState('');
 
   // Seed the input once real data arrives, same pattern as the event
   // detail screen's Learnings textarea — avoids a save-in-flight getting
@@ -36,6 +42,10 @@ export default function Settings() {
   useEffect(() => {
     if (settings) setIcalUrl(settings.lumaIcalUrl ?? '');
   }, [settings?.lumaIcalUrl]);
+
+  useEffect(() => {
+    if (settings) setPostInstructions(settings.linkedinPostInstructions ?? '');
+  }, [settings?.linkedinPostInstructions]);
 
   if (isLoading) {
     return (
@@ -145,6 +155,40 @@ export default function Settings() {
             {connectLinkedin.error instanceof Error ? connectLinkedin.error.message : 'Connection failed.'}
           </Text>
         ) : null}
+
+        <View style={styles.divider} />
+
+        <Text style={styles.subLabel}>Post writing instructions</Text>
+        <Text style={styles.explainerText}>
+          Standing instructions the AI follows for every draft — tone, how you want it to open,
+          anything you always want included or avoided. Left blank, it just uses sensible
+          defaults.
+        </Text>
+        <TextInput
+          value={postInstructions}
+          onChangeText={setPostInstructions}
+          placeholder={'e.g. "Keep it casual, no corporate buzzwords. Never open by naming the event — lead with the takeaway. Always end with a question."'}
+          placeholderTextColor={Colors.textTertiary}
+          multiline
+          textAlignVertical="top"
+          style={styles.textarea}
+        />
+        <Pressable
+          onPress={() => savePostInstructions.mutate(postInstructions.trim())}
+          disabled={savePostInstructions.isPending}
+          style={[styles.secondaryButton, savePostInstructions.isPending && styles.buttonDisabled]}>
+          <Text style={styles.secondaryButtonText}>
+            {savePostInstructions.isPending ? 'Saving…' : 'Save instructions'}
+          </Text>
+        </Pressable>
+        {savePostInstructions.isSuccess ? <Text style={styles.successText}>Saved.</Text> : null}
+        {savePostInstructions.isError ? (
+          <Text style={styles.errorText}>
+            {savePostInstructions.error instanceof Error
+              ? savePostInstructions.error.message
+              : 'Failed to save.'}
+          </Text>
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -162,7 +206,19 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardTitle: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase' },
+  subLabel: { fontSize: 14, fontWeight: '600', color: Colors.text },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border, marginVertical: 4 },
   explainerText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+  textarea: {
+    minHeight: 90,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderInput,
+    borderRadius: Radius.sm,
+    padding: 12,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.text,
+  },
   metaText: { fontSize: 13, color: Colors.textSecondary },
   input: {
     borderWidth: StyleSheet.hairlineWidth,

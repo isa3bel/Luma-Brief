@@ -9,6 +9,7 @@ export type UserSettings = {
   lumaIcalUrl: string | null;
   timezone: string;
   lastLumaSyncAt: string | null;
+  linkedinPostInstructions: string | null;
 };
 
 export const userSettingsQueryKey = ['user-settings'] as const;
@@ -22,7 +23,7 @@ async function fetchUserSettings(): Promise<UserSettings | null> {
 
   const { data, error } = await supabase!
     .from('user_settings')
-    .select('luma_ical_url, timezone, last_luma_sync_at')
+    .select('luma_ical_url, timezone, last_luma_sync_at, linkedin_post_instructions')
     .eq('user_id', user.id)
     .maybeSingle();
   if (error) throw error;
@@ -31,6 +32,7 @@ async function fetchUserSettings(): Promise<UserSettings | null> {
     lumaIcalUrl: data?.luma_ical_url ?? null,
     timezone: data?.timezone ?? 'America/Los_Angeles',
     lastLumaSyncAt: data?.last_luma_sync_at ?? null,
+    linkedinPostInstructions: data?.linkedin_post_instructions ?? null,
   };
 }
 
@@ -57,6 +59,27 @@ export function useSaveLumaIcalUrl() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: saveLumaIcalUrl,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: userSettingsQueryKey }),
+  });
+}
+
+async function saveLinkedinPostInstructions(instructions: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error('Supabase is not configured.');
+  const {
+    data: { user },
+  } = await supabase!.auth.getUser();
+  if (!user) throw new Error('Not signed in.');
+
+  const { error } = await supabase!
+    .from('user_settings')
+    .upsert({ user_id: user.id, linkedin_post_instructions: instructions || null }, { onConflict: 'user_id' });
+  if (error) throw error;
+}
+
+export function useSaveLinkedinPostInstructions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: saveLinkedinPostInstructions,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: userSettingsQueryKey }),
   });
 }

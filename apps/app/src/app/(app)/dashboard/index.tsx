@@ -5,6 +5,7 @@ import { BlurredSection } from '@/features/events/blurred-section';
 import { CalendarView } from '@/features/events/calendar-view';
 import { SwipeDeck } from '@/features/events/swipe-deck';
 import { useEvents, useUpdateEventStatus } from '@/features/events/use-events';
+import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 // Events that belong on the calendar at all: attended (went) or on the
 // books for the future (going/pending). Not-yet-reviewed past events live
@@ -15,6 +16,7 @@ const CALENDAR_STATUSES = new Set(['went', 'going', 'pending']);
 export default function Dashboard() {
   const { data: events, isLoading, isError, error } = useEvents();
   const updateStatus = useUpdateEventStatus();
+  const { isWide } = useBreakpoint();
 
   if (isError) {
     return (
@@ -39,7 +41,7 @@ export default function Dashboard() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {unresolved.length > 0 ? (
-        <View style={styles.deckSection}>
+        <View style={[styles.deckSection, isWide && styles.deckSectionWide]}>
           <Text style={styles.sectionTitle}>Did you go?</Text>
           <SwipeDeck
             events={unresolved}
@@ -64,6 +66,9 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 15, fontWeight: '600', color: Colors.danger },
   errorDetail: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center' },
   deckSection: { gap: 12 },
+  // Wide only — narrow already has no spare width to center within, so the
+  // deck stays full-bleed there, matching how the calendar itself behaves.
+  deckSectionWide: { maxWidth: 420, width: '100%', alignSelf: 'center' },
   calendarSection: { gap: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.text },
 });

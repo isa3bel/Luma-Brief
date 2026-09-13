@@ -10,7 +10,7 @@ import { corsHeaders, json } from '../_shared/cors.ts';
 
 const MODEL = 'claude-sonnet-5';
 
-const SYSTEM_PROMPT = `You write LinkedIn posts for a tech professional who wants to share what they learned at an event they attended, in their own voice.
+const BASE_SYSTEM_PROMPT = `You write LinkedIn posts for a tech professional who wants to share what they learned at an event they attended, in their own voice.
 
 You'll be given one event's title, date, location, speakers/topics if known, and the person's own raw notes from it. The notes are often quick fragments or half-sentences, not polished writing.
 
@@ -24,6 +24,18 @@ Your job:
 - At most 2-3 relevant hashtags at the very end, only if they'd feel native to this specific post — never force them.
 
 Return only the post text — no preamble, no headers, no "Here's a draft:", no quotation marks around it.`;
+
+// User-set standing preferences (Settings' "Post instructions" field) win
+// over the base defaults above where they conflict — e.g. a requested tone
+// or a required intro format should override the generic guidance, not
+// just add to it.
+function buildSystemPrompt(instructions: string | null): string {
+  if (!instructions?.trim()) return BASE_SYSTEM_PROMPT;
+  return `${BASE_SYSTEM_PROMPT}
+
+The user has also given you standing instructions for how they personally want every one of their posts written — tone, structure, anything else. Follow these even where they override the general guidance above:
+${instructions.trim()}`;
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -62,6 +74,12 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'Add some Learnings notes for this event first.' }, 200);
     }
 
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('linkedin_post_instructions')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) {
       return json({ error: 'AI drafting is not configured yet — missing ANTHROPIC_API_KEY.' }, 200);
@@ -91,7 +109,7 @@ Deno.serve(async (req: Request) => {
         model: MODEL,
         max_tokens: 1024,
         output_config: { effort: 'medium' },
-        system: SYSTEM_PROMPT,
+        system: buildSystemPrompt(settings?.linkedin_post_instructions ?? null),
         messages: [{ role: 'user', content: userMessage }],
       });
       const textBlock = response.content.find((b) => b.type === 'text');
