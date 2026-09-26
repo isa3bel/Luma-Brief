@@ -64,6 +64,17 @@ export const BrandFont = {
   extrabold: 'PlusJakartaSans_800ExtraBold',
 } as const;
 
+// Elevation, as CSS box-shadow strings (RN 0.86 supports these on native and
+// web alike, so there's no per-platform shadowColor/elevation split). Soft and
+// tinted toward ink rather than pure black, in two layers: a long faint drop
+// plus a tight contact shadow.
+export const Shadow = {
+  card: '0 16px 32px -16px rgba(23, 24, 27, 0.14), 0 1px 3px rgba(23, 24, 27, 0.04)',
+  float: '0 16px 32px -12px rgba(23, 24, 27, 0.18), 0 2px 6px rgba(23, 24, 27, 0.05)',
+  modal: '0 28px 64px -16px rgba(23, 24, 27, 0.4)',
+  accentGlow: '0 8px 20px -6px rgba(62, 95, 235, 0.6)',
+} as const;
+
 // --small-border-radius through --modal-squircle-border-radius. Flat rows
 // (--event-row-border-radius: 0) and the two --dt-*-border-radius (both ==
 // --border-radius) aren't given their own tokens — call sites use 0 or

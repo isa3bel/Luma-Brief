@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Colors, MaxWidth, Radius, StatusColors } from '@/constants/design';
+import { Colors, MaxWidth, Radius, Shadow, StatusColors } from '@/constants/design';
 import { BlurredSection } from '@/features/events/blurred-section';
 import { CalendarView } from '@/features/events/calendar-view';
 import { SwipeDeck } from '@/features/events/swipe-deck';
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    boxShadow: '0 16px 32px -16px rgba(23, 24, 27, 0.14), 0 1px 3px rgba(23, 24, 27, 0.04)',
+    boxShadow: Shadow.card,
   },
   sectionTitle: { fontSize: 20, fontWeight: '800', color: Colors.text },
 });

@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Colors, Radius, StatusColors, StatusLabel } from '@/constants/design';
+import { Colors, Radius, Shadow, StatusColors, StatusLabel } from '@/constants/design';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 import { formatEventDateTime } from './format';
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   legendLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(23, 24, 27, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -459,11 +459,12 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     maxHeight: '80%',
     backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    padding: 20,
+    borderRadius: Radius.cardLarge,
+    padding: 22,
     gap: 12,
+    boxShadow: Shadow.modal,
   },
-  modalTitle: { fontSize: 16, fontWeight: '700', color: Colors.text },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: Colors.text },
   modalRow: {
     flexDirection: 'row',
     alignItems: 'center',

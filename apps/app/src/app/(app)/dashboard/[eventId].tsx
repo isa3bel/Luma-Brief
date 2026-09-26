@@ -13,7 +13,8 @@ import {
   View,
 } from 'react-native';
 
-import { Colors, Radius, StatusColors, StatusLabel } from '@/constants/design';
+import { Button } from '@/components/ui';
+import { Colors, Radius, Shadow, StatusColors, StatusLabel } from '@/constants/design';
 import { formatEventDateTime } from '@/features/events/format';
 import { useEvent, useUpdateEventStatus, useUpdateLearnings } from '@/features/events/use-events';
 import type { EventStatus } from '@/features/events/types';
@@ -38,6 +39,7 @@ export default function EventDetail() {
   const updateStatus = useUpdateEventStatus();
 
   const [learnings, setLearnings] = useState('');
+  const [learningsFocused, setLearningsFocused] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const scrollRef = useRef<ScrollView>(null);
 
@@ -167,13 +169,18 @@ export default function EventDetail() {
       // in that case, so nothing here re-triggers. That's what the
       // TextInput's onContentSizeChange + scrollRef below is for.
       automaticallyAdjustKeyboardInsets>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
-        <MaterialIcons name="arrow-back" size={20} color={Colors.accent} />
+      <Pressable
+        onPress={() => router.back()}
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.backButton, pressed && styles.backPressed]}>
+        <MaterialIcons name="arrow-back" size={18} color={Colors.accent} />
         <Text style={styles.backText}>Back</Text>
       </Pressable>
 
       <View style={styles.header}>
-        <Text style={styles.title}>{event.title}</Text>
+        <Text role="heading" aria-level={1} style={styles.title}>
+          {event.title}
+        </Text>
         <View style={styles.statusGroup}>
           <View style={[styles.statusPill, { backgroundColor: StatusColors[event.status].bg }]}>
             <Text style={[styles.statusText, { color: StatusColors[event.status].text }]}>
@@ -196,7 +203,7 @@ export default function EventDetail() {
         </View>
       </View>
 
-      <View style={styles.metaBlock}>
+      <View style={styles.metaCard}>
         <MetaRow icon="event" text={formatEventDateTime(event.starts_at)} />
         {event.location_name ? (
           <MetaRow
@@ -207,14 +214,18 @@ export default function EventDetail() {
         {event.luma_url ? <MetaRow icon="link" text={event.luma_url} /> : null}
       </View>
 
+      {event.description || event.speakers.length > 0 || event.sponsors.length > 0 || event.topics.length > 0 ? (
+        // One card for the descriptive facts (rather than a card each) —
+        // About/Speakers/Sponsors/Topics are all read-only reference info.
+        <View style={styles.detailsCard}>
       {event.description ? (
-        <Section title="About">
+        <Section bare title="About">
           <Text style={styles.bodyText}>{event.description}</Text>
         </Section>
       ) : null}
 
       {event.speakers.length > 0 ? (
-        <Section title="Speakers">
+        <Section bare title="Speakers">
           {event.speakers.map((speaker) => (
             <Text key={speaker.name} style={styles.bodyText}>
               {speaker.name}
@@ -227,13 +238,13 @@ export default function EventDetail() {
       ) : null}
 
       {event.sponsors.length > 0 ? (
-        <Section title="Sponsors">
+        <Section bare title="Sponsors">
           <Text style={styles.bodyText}>{event.sponsors.map((s) => s.name).join(', ')}</Text>
         </Section>
       ) : null}
 
       {event.topics.length > 0 ? (
-        <Section title="Topics">
+        <Section bare title="Topics">
           <View style={styles.topics}>
             {event.topics.map((topic) => (
               <View key={topic} style={styles.topicPill}>
@@ -243,6 +254,8 @@ export default function EventDetail() {
           </View>
         </Section>
       ) : null}
+        </View>
+      ) : null}
 
       {userSettings?.granolaApiKey ? (
         <Section title="Granola Notes">
@@ -251,9 +264,7 @@ export default function EventDetail() {
             appended, never replacing what&apos;s already there, so you can attach more than one
             over time.
           </Text>
-          <Pressable onPress={openGranolaModal} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Find Granola notes</Text>
-          </Pressable>
+          <Button label="Find Granola notes" icon="description" variant="secondary" onPress={openGranolaModal} />
         </Section>
       ) : null}
 
@@ -269,7 +280,11 @@ export default function EventDetail() {
         <TextInput
           value={learnings}
           onChangeText={handleChange}
-          onBlur={() => debouncedSave.flush()}
+          onFocus={() => setLearningsFocused(true)}
+          onBlur={() => {
+            setLearningsFocused(false);
+            debouncedSave.flush();
+          }}
           // Fires as the multiline box grows a new line — Learnings is the
           // last section on the page, so scrolling to the very bottom of
           // the ScrollView and scrolling to the bottom of this box are the
@@ -279,7 +294,7 @@ export default function EventDetail() {
           placeholder="What did you take away from this one?"
           multiline
           textAlignVertical="top"
-          style={styles.learningsInput}
+          style={[styles.learningsInput, learningsFocused && styles.inputFocused]}
         />
       </Section>
 
@@ -306,15 +321,11 @@ export default function EventDetail() {
                 {/* In case the post above got deleted on LinkedIn itself —
                     this drafts and posts fresh, overwriting the old
                     urn/timestamp with whatever the new post gets. */}
-                <Pressable onPress={openLinkedinModal} style={styles.secondaryButton}>
-                  <Text style={styles.secondaryButtonText}>Post again</Text>
-                </Pressable>
+                <Button label="Post again" variant="secondary" onPress={openLinkedinModal} />
               </View>
             </>
           ) : (
-            <Pressable onPress={openLinkedinModal} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>Share on LinkedIn</Text>
-            </Pressable>
+            <Button label="Share on LinkedIn" icon="share" variant="secondary" onPress={openLinkedinModal} />
           )}
         </Section>
       ) : null}
@@ -344,9 +355,7 @@ export default function EventDetail() {
                   <Text style={styles.errorText}>
                     {draftPost.error instanceof Error ? draftPost.error.message : 'Failed to draft.'}
                   </Text>
-                  <Pressable onPress={handleDraftLinkedinPost} style={styles.secondaryButton}>
-                    <Text style={styles.secondaryButtonText}>Try again</Text>
-                  </Pressable>
+                  <Button label="Try again" variant="secondary" onPress={handleDraftLinkedinPost} />
                 </>
               ) : (
                 <>
@@ -373,25 +382,19 @@ export default function EventDetail() {
                     </Text>
                   ) : null}
                   <View style={styles.linkedinActions}>
-                    <Pressable
-                      onPress={handleDraftLinkedinPost}
+                    <Button
+                      label={draftPost.isPending ? 'Regenerating…' : 'Regenerate'}
+                      icon="refresh"
+                      variant="secondary"
                       disabled={draftPost.isPending}
-                      style={[styles.secondaryButton, draftPost.isPending && styles.buttonDisabled]}>
-                      <Text style={styles.secondaryButtonText}>
-                        {draftPost.isPending ? 'Regenerating…' : 'Regenerate'}
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={handlePostToLinkedin}
+                      onPress={handleDraftLinkedinPost}
+                    />
+                    <Button
+                      label={postToLinkedin.isPending ? 'Posting…' : 'Post to LinkedIn'}
+                      icon="send"
                       disabled={postToLinkedin.isPending || !linkedinDraft?.trim()}
-                      style={[
-                        styles.primaryButton,
-                        (postToLinkedin.isPending || !linkedinDraft?.trim()) && styles.buttonDisabled,
-                      ]}>
-                      <Text style={styles.primaryButtonText}>
-                        {postToLinkedin.isPending ? 'Posting…' : 'Post to LinkedIn'}
-                      </Text>
-                    </Pressable>
+                      onPress={handlePostToLinkedin}
+                    />
                   </View>
                 </>
               )}
@@ -421,9 +424,7 @@ export default function EventDetail() {
                   <Text style={styles.errorText}>
                     {searchGranola.error instanceof Error ? searchGranola.error.message : 'Search failed.'}
                   </Text>
-                  <Pressable onPress={openGranolaModal} style={styles.secondaryButton}>
-                    <Text style={styles.secondaryButtonText}>Try again</Text>
-                  </Pressable>
+                  <Button label="Try again" variant="secondary" onPress={openGranolaModal} />
                 </>
               ) : granolaNotes && granolaNotes.length > 0 ? (
                 <ScrollView style={styles.granolaList}>
@@ -445,17 +446,12 @@ export default function EventDetail() {
                       {note.alreadyImported ? (
                         <Text style={styles.successText}>Imported</Text>
                       ) : (
-                        <Pressable
-                          onPress={() => handleImportGranolaNote(note.id)}
+                        <Button
+                          label={importingGranolaId === note.id ? 'Importing…' : 'Import'}
+                          variant="secondary"
                           disabled={importingGranolaId === note.id}
-                          style={[
-                            styles.secondaryButton,
-                            importingGranolaId === note.id && styles.buttonDisabled,
-                          ]}>
-                          <Text style={styles.secondaryButtonText}>
-                            {importingGranolaId === note.id ? 'Importing…' : 'Import'}
-                          </Text>
-                        </Pressable>
+                          onPress={() => handleImportGranolaNote(note.id)}
+                        />
                       )}
                     </View>
                   ))}
@@ -490,14 +486,16 @@ function MetaRow({ icon, text }: { icon: keyof typeof MaterialIcons.glyphMap; te
 function Section({
   title,
   trailing,
+  bare = false,
   children,
 }: {
   title: string;
   trailing?: React.ReactNode;
+  bare?: boolean; // no card frame of its own — sits inside a parent card
   children: React.ReactNode;
 }) {
   return (
-    <View style={styles.section}>
+    <View style={bare ? styles.sectionBare : styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{title}</Text>
         {trailing}
@@ -508,14 +506,25 @@ function Section({
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, gap: 20, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  container: { padding: 20, gap: 16, maxWidth: 720, width: '100%', alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
-  backText: { color: Colors.accent, fontWeight: '600' },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
-  title: { fontSize: 24, fontWeight: '700', flex: 1, color: Colors.text },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingLeft: 8,
+    paddingRight: 14,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.accentTint,
+  },
+  backPressed: { opacity: 0.6 },
+  backText: { color: Colors.accent, fontWeight: '700', fontSize: 14 },
+  header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  title: { fontSize: 28, fontWeight: '800', flex: 1, minWidth: 220, color: Colors.text, letterSpacing: -0.3, lineHeight: 34 },
   statusGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  statusPill: { borderRadius: Radius.pill, paddingVertical: 4, paddingHorizontal: 10 },
+  statusPill: { borderRadius: Radius.pill, paddingVertical: 5, paddingHorizontal: 12 },
   statusText: { fontSize: 12, fontWeight: '700' },
   removeButton: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -526,53 +535,66 @@ const styles = StyleSheet.create({
   },
   removeButtonDisabled: { opacity: 0.5 },
   removeButtonText: { fontSize: 12, fontWeight: '700', color: Colors.danger },
-  metaBlock: { gap: 8 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  metaCard: {
+    gap: 10,
+    padding: 16,
+    borderRadius: Radius.card,
+    backgroundColor: Colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    boxShadow: Shadow.card,
+  },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   metaText: { fontSize: 14, color: Colors.text, flexShrink: 1 },
-  section: { gap: 8 },
+  detailsCard: {
+    gap: 18,
+    padding: 18,
+    borderRadius: Radius.cardLarge,
+    backgroundColor: Colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    boxShadow: Shadow.card,
+  },
+  sectionBare: { gap: 6 },
+  // Each interactive section is its own framed card, matching Settings/Learnings.
+  section: {
+    gap: 10,
+    padding: 18,
+    borderRadius: Radius.cardLarge,
+    backgroundColor: Colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    boxShadow: Shadow.card,
+  },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, color: Colors.textSecondary, textTransform: 'uppercase' },
   bodyText: { fontSize: 15, lineHeight: 22, color: Colors.text },
   topics: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   topicPill: { backgroundColor: Colors.accentTint, borderRadius: Radius.pill, paddingVertical: 4, paddingHorizontal: 10 },
   topicText: { fontSize: 12, color: Colors.accent, fontWeight: '600' },
   learningsInput: {
-    minHeight: 140,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderInput,
-    borderRadius: Radius.sm,
-    padding: 12,
+    minHeight: 160,
+    backgroundColor: Colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: Radius.md,
+    padding: 14,
     fontSize: 15,
     lineHeight: 22,
     color: Colors.text,
+    outlineStyle: 'none' as never,
   },
+  inputFocused: { backgroundColor: Colors.surface, borderColor: Colors.accent },
   saveState: { fontSize: 12, color: Colors.textSecondary },
   explainerText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
   errorText: { fontSize: 12, color: Colors.danger },
   successText: { fontSize: 12, color: Colors.success },
   linkText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
-  linkedinActions: { flexDirection: 'row', gap: 10 },
-  primaryButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.accent,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: Radius.sm,
-  },
-  primaryButtonText: { color: Colors.surface, fontSize: 14, fontWeight: '600' },
-  secondaryButton: {
-    alignSelf: 'flex-start',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.accent,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: Radius.sm,
-  },
-  secondaryButtonText: { color: Colors.accent, fontSize: 14, fontWeight: '600' },
+  linkedinActions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
   buttonDisabled: { opacity: 0.5 },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(23, 24, 27, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -582,19 +604,19 @@ const styles = StyleSheet.create({
     maxWidth: 480,
     maxHeight: '85%',
     backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    padding: 20,
-    gap: 12,
+    borderRadius: Radius.cardLarge,
+    padding: 22,
+    gap: 14,
+    boxShadow: Shadow.modal,
   },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  modalTitle: { fontSize: 16, fontWeight: '700', color: Colors.text },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: Colors.text },
   modalLoading: { alignItems: 'center', gap: 10, paddingVertical: 24 },
   modalTextarea: {
     minHeight: 180,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderInput,
-    borderRadius: Radius.sm,
-    padding: 12,
+    backgroundColor: Colors.surfaceMuted,
+    borderRadius: Radius.md,
+    padding: 14,
     fontSize: 15,
     lineHeight: 22,
     color: Colors.text,

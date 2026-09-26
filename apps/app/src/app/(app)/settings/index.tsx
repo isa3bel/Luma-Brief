@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Badge, Button, Card, PageHeader } from '@/components/ui';
 import { Colors, Radius } from '@/constants/design';
 import { useLumaSync } from '@/features/events/use-luma-sync';
 import { useConnectLinkedin, useLinkedinConnection } from '@/features/linkedin/use-linkedin';
@@ -66,10 +67,12 @@ export default function Settings() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Settings</Text>
+      <PageHeader title="Settings" subtitle="Connect your calendar and the tools LumaBrief works with." />
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Luma Calendar</Text>
+      <Card
+        title="Luma calendar"
+        icon="event"
+        badge={hasUrl ? <Badge label="Linked" /> : <Badge label="Not set up" tone="neutral" />}>
         <Text style={styles.explainerText}>
           Find this in Luma under Account → Calendar Settings → Subscribe via iCal, then paste the
           link here.
@@ -78,33 +81,33 @@ export default function Settings() {
           value={icalUrl}
           onChangeText={setIcalUrl}
           placeholder="webcal://lu.ma/ical/... or https://..."
+          placeholderTextColor={Colors.textTertiary}
           autoCapitalize="none"
           autoCorrect={false}
           style={styles.input}
         />
-        <Pressable
-          onPress={() => saveUrl.mutate(icalUrl.trim())}
+        <Button
+          label={saveUrl.isPending ? 'Saving…' : 'Save'}
           disabled={saveUrl.isPending || !icalUrl.trim()}
-          style={[styles.primaryButton, (saveUrl.isPending || !icalUrl.trim()) && styles.buttonDisabled]}>
-          <Text style={styles.primaryButtonText}>{saveUrl.isPending ? 'Saving…' : 'Save'}</Text>
-        </Pressable>
+          onPress={() => saveUrl.mutate(icalUrl.trim())}
+        />
         {saveUrl.isSuccess ? <Text style={styles.successText}>Saved.</Text> : null}
         {saveUrl.isError ? (
           <Text style={styles.errorText}>
             {saveUrl.error instanceof Error ? saveUrl.error.message : 'Failed to save.'}
           </Text>
         ) : null}
-      </View>
+      </Card>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Sync</Text>
+      <Card title="Sync" icon="sync">
         <Text style={styles.metaText}>{formatLastSync(settings?.lastLumaSyncAt ?? null)}</Text>
-        <Pressable
-          onPress={() => lumaSync.mutate()}
+        <Button
+          label={lumaSync.isPending ? 'Syncing…' : 'Sync now'}
+          icon="sync"
+          variant="secondary"
           disabled={lumaSync.isPending || !hasUrl}
-          style={[styles.secondaryButton, (lumaSync.isPending || !hasUrl) && styles.buttonDisabled]}>
-          <Text style={styles.secondaryButtonText}>{lumaSync.isPending ? 'Syncing…' : 'Sync now'}</Text>
-        </Pressable>
+          onPress={() => lumaSync.mutate()}
+        />
         {!hasUrl ? <Text style={styles.explainerText}>Save an iCal URL above first.</Text> : null}
         {lumaSync.data?.error ? <Text style={styles.errorText}>{lumaSync.data.error}</Text> : null}
         {lumaSync.data && !lumaSync.data.error ? (
@@ -122,10 +125,12 @@ export default function Settings() {
             {lumaSync.error instanceof Error ? lumaSync.error.message : 'Sync failed.'}
           </Text>
         ) : null}
-      </View>
+      </Card>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>LinkedIn</Text>
+      <Card
+        title="LinkedIn"
+        icon="share"
+        badge={linkedin?.connected ? <Badge label="Connected" /> : <Badge label="Not connected" tone="neutral" />}>
         <Text style={styles.explainerText}>
           Connect once to draft and post &quot;Share on LinkedIn&quot; write-ups from an event&apos;s
           Learnings notes. Connections last about 60 days, then need reconnecting here.
@@ -138,24 +143,19 @@ export default function Settings() {
               Connected{linkedin.memberName ? ` as ${linkedin.memberName}` : ''}.
             </Text>
             {linkedin.expiresAt ? <Text style={styles.metaText}>{formatExpiry(linkedin.expiresAt)}</Text> : null}
-            <Pressable
-              onPress={() => connectLinkedin.mutate()}
+            <Button
+              label={connectLinkedin.isPending ? 'Connecting…' : 'Reconnect'}
+              variant="secondary"
               disabled={connectLinkedin.isPending}
-              style={[styles.secondaryButton, connectLinkedin.isPending && styles.buttonDisabled]}>
-              <Text style={styles.secondaryButtonText}>
-                {connectLinkedin.isPending ? 'Connecting…' : 'Reconnect'}
-              </Text>
-            </Pressable>
+              onPress={() => connectLinkedin.mutate()}
+            />
           </>
         ) : (
-          <Pressable
-            onPress={() => connectLinkedin.mutate()}
+          <Button
+            label={connectLinkedin.isPending ? 'Connecting…' : 'Connect LinkedIn'}
             disabled={connectLinkedin.isPending}
-            style={[styles.primaryButton, connectLinkedin.isPending && styles.buttonDisabled]}>
-            <Text style={styles.primaryButtonText}>
-              {connectLinkedin.isPending ? 'Connecting…' : 'Connect LinkedIn'}
-            </Text>
-          </Pressable>
+            onPress={() => connectLinkedin.mutate()}
+          />
         )}
         {connectLinkedin.isError ? (
           <Text style={styles.errorText}>
@@ -180,14 +180,12 @@ export default function Settings() {
           textAlignVertical="top"
           style={styles.textarea}
         />
-        <Pressable
-          onPress={() => savePostInstructions.mutate(postInstructions.trim())}
+        <Button
+          label={savePostInstructions.isPending ? 'Saving…' : 'Save instructions'}
+          variant="secondary"
           disabled={savePostInstructions.isPending}
-          style={[styles.secondaryButton, savePostInstructions.isPending && styles.buttonDisabled]}>
-          <Text style={styles.secondaryButtonText}>
-            {savePostInstructions.isPending ? 'Saving…' : 'Save instructions'}
-          </Text>
-        </Pressable>
+          onPress={() => savePostInstructions.mutate(postInstructions.trim())}
+        />
         {savePostInstructions.isSuccess ? <Text style={styles.successText}>Saved.</Text> : null}
         {savePostInstructions.isError ? (
           <Text style={styles.errorText}>
@@ -196,10 +194,12 @@ export default function Settings() {
               : 'Failed to save.'}
           </Text>
         ) : null}
-      </View>
+      </Card>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Granola</Text>
+      <Card
+        title="Granola"
+        icon="description"
+        badge={settings?.granolaApiKey ? <Badge label="Connected" /> : <Badge label="Not connected" tone="neutral" />}>
         <Text style={styles.explainerText}>
           Find this in Granola under Settings → Connectors → API keys. Once connected, an
           event&apos;s page can pull in a matching Granola note&apos;s summary as Learnings.
@@ -208,85 +208,54 @@ export default function Settings() {
           value={granolaKey}
           onChangeText={setGranolaKey}
           placeholder="Paste your Granola API key"
+          placeholderTextColor={Colors.textTertiary}
           autoCapitalize="none"
           autoCorrect={false}
           secureTextEntry
           style={styles.input}
         />
-        <Pressable
-          onPress={() => saveGranolaKey.mutate(granolaKey.trim())}
+        <Button
+          label={saveGranolaKey.isPending ? 'Saving…' : 'Save'}
           disabled={saveGranolaKey.isPending || !granolaKey.trim()}
-          style={[
-            styles.primaryButton,
-            (saveGranolaKey.isPending || !granolaKey.trim()) && styles.buttonDisabled,
-          ]}>
-          <Text style={styles.primaryButtonText}>{saveGranolaKey.isPending ? 'Saving…' : 'Save'}</Text>
-        </Pressable>
-        {settings?.granolaApiKey ? <Text style={styles.successText}>Connected.</Text> : null}
+          onPress={() => saveGranolaKey.mutate(granolaKey.trim())}
+        />
         {saveGranolaKey.isSuccess ? <Text style={styles.successText}>Saved.</Text> : null}
         {saveGranolaKey.isError ? (
           <Text style={styles.errorText}>
             {saveGranolaKey.error instanceof Error ? saveGranolaKey.error.message : 'Failed to save.'}
           </Text>
         ) : null}
-      </View>
+      </Card>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, gap: 16, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  container: { padding: 20, gap: 20, maxWidth: 720, width: '100%', alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 22, fontWeight: '700', color: Colors.text },
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.card,
-    padding: 16,
-    gap: 10,
-  },
-  cardTitle: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase' },
-  subLabel: { fontSize: 14, fontWeight: '600', color: Colors.text },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border, marginVertical: 4 },
+  subLabel: { fontSize: 15, fontWeight: '700', color: Colors.text },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border, marginVertical: 6 },
   explainerText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
   textarea: {
-    minHeight: 90,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderInput,
-    borderRadius: Radius.sm,
-    padding: 12,
+    minHeight: 100,
+    backgroundColor: Colors.surfaceMuted,
+    borderRadius: Radius.md,
+    padding: 14,
     fontSize: 14,
     lineHeight: 20,
     color: Colors.text,
+    outlineStyle: 'none' as never,
   },
   metaText: { fontSize: 13, color: Colors.textSecondary },
   input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderInput,
-    borderRadius: Radius.sm,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    backgroundColor: Colors.surfaceMuted,
+    borderRadius: Radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     fontSize: 14,
     color: Colors.text,
+    outlineStyle: 'none' as never,
   },
-  primaryButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.accent,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: Radius.sm,
-  },
-  primaryButtonText: { color: Colors.surface, fontSize: 14, fontWeight: '600' },
-  secondaryButton: {
-    alignSelf: 'flex-start',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.accent,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: Radius.sm,
-  },
-  secondaryButtonText: { color: Colors.accent, fontSize: 13, fontWeight: '600' },
-  buttonDisabled: { opacity: 0.5 },
-  successText: { fontSize: 12, color: Colors.success },
-  errorText: { fontSize: 12, color: Colors.danger },
+  successText: { fontSize: 13, fontWeight: '600', color: Colors.success },
+  errorText: { fontSize: 13, color: Colors.danger },
 });

@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Radius } from '@/constants/design';
+import { Button, Card, PageHeader } from '@/components/ui';
+import { Colors, Radius, Shadow } from '@/constants/design';
 import { useAuth } from '@/features/auth/auth-context';
 import { formatEventDateTime } from '@/features/events/format';
 import { monthKey, useEventsWithLearnings, useGenerateSummary, useMonthlySummary } from '@/features/learnings/use-monthly-summary';
@@ -85,9 +86,31 @@ export default function Learnings() {
     );
   }
 
+  const monthNav = (
+    <View style={styles.monthNav}>
+      <Pressable
+        onPress={() => goToMonth(-1)}
+        hitSlop={6}
+        accessibilityLabel="Previous month"
+        style={({ pressed }) => [styles.navButton, pressed && styles.navPressed]}>
+        <MaterialIcons name="chevron-left" size={22} color={Colors.text} />
+      </Pressable>
+      <Pressable
+        onPress={() => goToMonth(1)}
+        hitSlop={6}
+        accessibilityLabel="Next month"
+        style={({ pressed }) => [styles.navButton, pressed && styles.navPressed]}>
+        <MaterialIcons name="chevron-right" size={22} color={Colors.text} />
+      </Pressable>
+    </View>
+  );
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Learnings</Text>
+      <PageHeader
+        title="Learnings"
+        subtitle="What you took away from the events you attended, by month."
+      />
       {isMockMode ? (
         <Text style={styles.mockNotice}>
           Mock summaries — connect a real LLM once Supabase is set up.
@@ -95,37 +118,34 @@ export default function Learnings() {
       ) : null}
 
       <View style={styles.monthHeader}>
-        <Pressable onPress={() => goToMonth(-1)} hitSlop={8} accessibilityLabel="Previous month">
-          <MaterialIcons name="chevron-left" size={24} color={Colors.text} />
-        </Pressable>
         <Text style={styles.monthLabel}>{monthLabel}</Text>
-        <Pressable onPress={() => goToMonth(1)} hitSlop={8} accessibilityLabel="Next month">
-          <MaterialIcons name="chevron-right" size={24} color={Colors.text} />
-        </Pressable>
+        {monthNav}
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Key Takeaways</Text>
-
+      <Card title="Key takeaways" icon="auto-awesome">
         {events.length === 0 ? (
-          <Text style={styles.emptyText}>
-            No learnings recorded this month yet — add some from an event&apos;s detail page.
-          </Text>
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>Nothing recorded for {monthLabel} yet</Text>
+            <Text style={styles.emptyText}>
+              Add notes from an event&apos;s page and they&apos;ll show up here, ready to summarize.
+            </Text>
+          </View>
         ) : summary ? (
           <>
             <SummarySections text={summary.summary} />
-            <Text style={styles.metaText}>
-              Generated {formatGeneratedAt(summary.generatedAt)}
-              {summary.model ? ` · ${summary.model}` : ' · mock'}
-            </Text>
-            <Pressable
-              onPress={() => generateSummary.mutate(events)}
-              disabled={generateSummary.isPending}
-              style={[styles.secondaryButton, generateSummary.isPending && styles.buttonDisabled]}>
-              <Text style={styles.secondaryButtonText}>
-                {generateSummary.isPending ? 'Regenerating…' : 'Regenerate'}
+            <View style={styles.summaryFooter}>
+              <Text style={styles.metaText}>
+                Generated {formatGeneratedAt(summary.generatedAt)}
+                {summary.model ? ` · ${summary.model}` : ' · mock'}
               </Text>
-            </Pressable>
+              <Button
+                label={generateSummary.isPending ? 'Regenerating…' : 'Regenerate'}
+                icon="refresh"
+                variant="secondary"
+                disabled={generateSummary.isPending}
+                onPress={() => generateSummary.mutate(events)}
+              />
+            </View>
             {generateSummary.isError ? (
               <Text style={styles.errorText}>
                 Couldn&apos;t regenerate:{' '}
@@ -139,14 +159,12 @@ export default function Learnings() {
               Uses an AI model to synthesize this month&apos;s notes into key takeaways. Generated on
               request, not automatically — each generation has a small cost.
             </Text>
-            <Pressable
-              onPress={() => generateSummary.mutate(events)}
+            <Button
+              label={generateSummary.isPending ? 'Generating…' : 'Generate summary'}
+              icon="auto-awesome"
               disabled={generateSummary.isPending}
-              style={[styles.primaryButton, generateSummary.isPending && styles.buttonDisabled]}>
-              <Text style={styles.primaryButtonText}>
-                {generateSummary.isPending ? 'Generating…' : 'Generate summary'}
-              </Text>
-            </Pressable>
+              onPress={() => generateSummary.mutate(events)}
+            />
             {generateSummary.isError ? (
               <Text style={styles.errorText}>
                 Couldn&apos;t generate a summary:{' '}
@@ -155,21 +173,29 @@ export default function Learnings() {
             ) : null}
           </>
         )}
-      </View>
+      </Card>
 
       {events.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Events this month</Text>
+          <Text style={styles.sectionTitle}>
+            Events this month · {events.length}
+          </Text>
           {events.map((event) => (
             <Pressable
               key={event.id}
               onPress={() => router.push(`/dashboard/${event.id}`)}
-              style={({ pressed }) => [styles.eventRow, pressed && styles.eventRowPressed]}>
-              <Text style={styles.eventTitle}>{event.title}</Text>
-              <Text style={styles.eventMeta}>{formatEventDateTime(event.starts_at)}</Text>
-              <Text style={styles.eventLearnings} numberOfLines={2}>
-                {event.learnings}
-              </Text>
+              style={(state) => {
+                const hovered = (state as { hovered?: boolean }).hovered;
+                return [styles.eventCard, hovered && styles.eventCardHover, state.pressed && styles.eventRowPressed];
+              }}>
+              <View style={styles.eventMain}>
+                <Text style={styles.eventTitle}>{event.title}</Text>
+                <Text style={styles.eventMeta}>{formatEventDateTime(event.starts_at)}</Text>
+                <Text style={styles.eventLearnings} numberOfLines={2}>
+                  {event.learnings}
+                </Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={22} color={Colors.textTertiary} />
             </Pressable>
           ))}
         </View>
@@ -179,9 +205,8 @@ export default function Learnings() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, gap: 16, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  container: { padding: 20, gap: 20, maxWidth: 720, width: '100%', alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 22, fontWeight: '700', color: Colors.text },
   mockNotice: {
     fontSize: 13,
     lineHeight: 18,
@@ -190,54 +215,62 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: Radius.sm,
   },
-  monthHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
-  monthLabel: { fontSize: 16, fontWeight: '700', minWidth: 160, textAlign: 'center', color: Colors.text },
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    borderRadius: Radius.card,
-    padding: 16,
-    gap: 10,
+  monthHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  monthLabel: { fontSize: 20, fontWeight: '800', color: Colors.text },
+  monthNav: { flexDirection: 'row', gap: 8 },
+  navButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: Colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardTitle: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase' },
+  navPressed: { opacity: 0.6 },
+  empty: { gap: 4, paddingVertical: 8 },
+  emptyTitle: { fontSize: 15, fontWeight: '700', color: Colors.text },
   emptyText: { fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
-  explainerText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
-  summarySections: { gap: 14 },
-  summarySection: { gap: 4 },
-  summarySectionHeader: { fontSize: 14, fontWeight: '700', color: Colors.accent },
+  explainerText: { fontSize: 14, color: Colors.textSecondary, lineHeight: 21 },
+  summarySections: { gap: 18 },
+  summarySection: { gap: 6 },
+  summarySectionHeader: { fontSize: 15, fontWeight: '800', color: Colors.accent },
   summaryBulletRow: { flexDirection: 'row', gap: 8 },
   summaryBulletDot: { fontSize: 15, lineHeight: 22, color: Colors.textSecondary },
   summaryBulletText: { flex: 1, fontSize: 15, lineHeight: 22, color: Colors.text },
+  summaryFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
   metaText: { fontSize: 12, color: Colors.textSecondary },
   errorText: { fontSize: 12, color: Colors.danger },
-  primaryButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.accent,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: Radius.sm,
+  section: { gap: 10 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
   },
-  primaryButtonText: { color: Colors.surface, fontSize: 14, fontWeight: '600' },
-  secondaryButton: {
-    alignSelf: 'flex-start',
+  eventCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 16,
+    borderRadius: Radius.card,
+    backgroundColor: Colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.accent,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: Radius.sm,
+    borderColor: Colors.border,
   },
-  secondaryButtonText: { color: Colors.accent, fontSize: 13, fontWeight: '600' },
-  buttonDisabled: { opacity: 0.5 },
-  section: { gap: 8 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase' },
-  eventRow: {
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-    gap: 2,
-  },
-  eventRowPressed: { opacity: 0.6 },
-  eventTitle: { fontSize: 15, fontWeight: '600', color: Colors.text },
+  eventCardHover: { boxShadow: Shadow.card, transform: [{ translateY: -1 }] },
+  eventRowPressed: { opacity: 0.7 },
+  eventMain: { flex: 1, gap: 2 },
+  eventTitle: { fontSize: 16, fontWeight: '700', color: Colors.text },
   eventMeta: { fontSize: 13, color: Colors.textSecondary },
-  eventLearnings: { fontSize: 13, color: Colors.text, marginTop: 2 },
+  eventLearnings: { fontSize: 14, lineHeight: 20, color: Colors.text, marginTop: 4 },
 });
