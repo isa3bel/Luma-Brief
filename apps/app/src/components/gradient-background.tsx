@@ -16,26 +16,31 @@ import { Colors, StatusColors } from '@/constants/design';
 // it), absolutely filling their shared parent — that keeps it fixed
 // behind the content as the page scrolls, the RN equivalent of the
 // reference CSS's `position: fixed`.
-export function GradientBackground() {
+//
+// `intensity` scales every blob's opacity (1 = the original subtle wash
+// sign-in uses; the landing page turns it up so the page isn't mostly
+// white).
+export function GradientBackground({ intensity = 1 }: { intensity?: number }) {
+  const scaled = (base: number) => Math.min(1, base * intensity);
   return (
     <View style={styles.container} pointerEvents="none">
       <LinearGradient
         colors={[Colors.accent, 'transparent']}
         start={{ x: 0.3, y: 0.2 }}
         end={{ x: 0.9, y: 0.9 }}
-        style={[styles.blob, styles.blobTopLeft]}
+        style={[styles.blob, styles.blobTopLeft, { opacity: scaled(0.35) }]}
       />
       <LinearGradient
         colors={[StatusColors.went.bg, 'transparent']}
         start={{ x: 0.7, y: 0.3 }}
         end={{ x: 0.1, y: 1 }}
-        style={[styles.blob, styles.blobBottomRight]}
+        style={[styles.blob, styles.blobBottomRight, { opacity: scaled(0.35) }]}
       />
       <LinearGradient
         colors={[Colors.navGradientTop, 'transparent']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
-        style={[styles.blob, styles.blobCenter]}
+        style={[styles.blob, styles.blobCenter, { opacity: scaled(0.2) }]}
       />
     </View>
   );
@@ -58,9 +63,8 @@ const styles = StyleSheet.create({
     width: BLOB_SIZE,
     height: BLOB_SIZE,
     borderRadius: BLOB_SIZE / 2,
-    opacity: 0.35,
   },
   blobTopLeft: { top: -BLOB_SIZE * 0.35, left: -BLOB_SIZE * 0.3 },
   blobBottomRight: { bottom: -BLOB_SIZE * 0.4, right: -BLOB_SIZE * 0.25 },
-  blobCenter: { top: '20%', left: '50%', marginLeft: -BLOB_SIZE / 2, opacity: 0.2 },
+  blobCenter: { top: '20%', left: '50%', marginLeft: -BLOB_SIZE / 2 },
 });

@@ -52,6 +52,18 @@ export const StatusLabel: Record<EventStatus, string> = {
   unresolved: 'Unresolved',
 };
 
+// Plus Jakarta Sans — the marketing surfaces' display/body face (landing
+// page; loaded there via @expo-google-fonts/plus-jakarta-sans rather than
+// app-wide, so signed-in screens never pay for it). One family name per
+// weight, because RN custom fonts pick a weight by family name, not by
+// fontWeight — don't combine these with a fontWeight in the same style.
+export const BrandFont = {
+  regular: 'PlusJakartaSans_400Regular',
+  semibold: 'PlusJakartaSans_600SemiBold',
+  bold: 'PlusJakartaSans_700Bold',
+  extrabold: 'PlusJakartaSans_800ExtraBold',
+} as const;
+
 // --small-border-radius through --modal-squircle-border-radius. Flat rows
 // (--event-row-border-radius: 0) and the two --dt-*-border-radius (both ==
 // --border-radius) aren't given their own tokens — call sites use 0 or

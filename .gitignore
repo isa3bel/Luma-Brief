@@ -3,3 +3,7 @@ node_modules/
 
 # macOS
 .DS_Store
+
+# Python bytecode (from .claude/skills/ui-ux-pro-max scripts)
+__pycache__/
+*.pyc
