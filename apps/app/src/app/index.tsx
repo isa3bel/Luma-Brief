@@ -102,7 +102,7 @@ function LandingPage() {
         <View style={[styles.hero, isWide && styles.heroWide]}>
           <Animated.View
             entering={FadeInDown.duration(600).reduceMotion(ReduceMotion.System)}
-            style={styles.heroCopy}>
+            style={[styles.heroCopy, isWide && styles.heroCopyWide]}>
             <View style={styles.eyebrowPill}>
               <View style={styles.eyebrowDot} />
               <Text style={styles.eyebrowPillText}>Built for Luma event-goers</Text>
@@ -133,7 +133,7 @@ function LandingPage() {
 
           <Animated.View
             entering={FadeInUp.delay(200).duration(700).reduceMotion(ReduceMotion.System)}
-            style={styles.heroVisual}>
+            style={[styles.heroVisual, isWide && styles.heroVisualWide]}>
             <AppPreview />
           </Animated.View>
         </View>
@@ -146,7 +146,7 @@ function LandingPage() {
           <SectionHeading eyebrow="How it works" title="From event to takeaway in three steps." />
           <View style={[styles.steps, isWide && styles.stepsWide]}>
             {STEPS.map((step, i) => (
-              <View key={step.title} style={styles.step}>
+              <View key={step.title} style={[styles.step, isWide && styles.stepWide]}>
                 <Text style={styles.stepNumber}>{i + 1}</Text>
                 <Text style={styles.stepTitle}>{step.title}</Text>
                 <Text style={styles.stepBody}>{step.body}</Text>
@@ -161,7 +161,7 @@ function LandingPage() {
             title="Scattered notes in. Something you can say out loud, out."
           />
           <View style={[styles.transform, isWide && styles.transformWide]}>
-            <View style={styles.rawCard}>
+            <View style={[styles.rawCard, isWide && styles.rawCardWide]}>
               <Text style={styles.rawLabel}>What you typed</Text>
               <Text style={styles.rawText}>
                 - agentic ai everywhere{'\n'}- token cost = real bottleneck{'\n'}- shadow ai — ppl
@@ -179,7 +179,7 @@ function LandingPage() {
               colors={[Colors.accent, StatusColors.went.bg]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.briefCard}>
+              style={[styles.briefCard, isWide && styles.briefCardWide]}>
               <Text style={styles.briefLabel}>What LumaBrief writes</Text>
               <Text style={styles.briefTheme}>Agentic AI</Text>
               <BriefBullet>
@@ -199,7 +199,7 @@ function LandingPage() {
 
         <View style={styles.section}>
           <View style={[styles.share, isWide && styles.shareWide]}>
-            <View style={styles.shareCopy}>
+            <View style={[styles.shareCopy, isWide && styles.shareCopyWide]}>
               <SectionHeading
                 eyebrow="Share it"
                 title="One click from private notes to a LinkedIn post."
@@ -466,8 +466,10 @@ const styles = StyleSheet.create({
     gap: 48,
   },
   heroWide: { flexDirection: 'row', alignItems: 'center', paddingTop: 64, paddingBottom: 72 },
-  heroCopy: { flex: 1, gap: 20, alignItems: 'flex-start' },
-  heroVisual: { flex: 1, alignItems: 'center', width: '100%' },
+  heroCopy: { gap: 20, alignItems: 'flex-start' },
+  heroCopyWide: { flex: 1 },
+  heroVisual: { alignItems: 'center', width: '100%' },
+  heroVisualWide: { flex: 1 },
   eyebrowPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -567,7 +569,8 @@ const styles = StyleSheet.create({
 
   steps: { gap: 32 },
   stepsWide: { flexDirection: 'row' },
-  step: { flex: 1, gap: 8, paddingTop: 16, borderTopWidth: 2, borderTopColor: Colors.border },
+  stepWide: { flex: 1 },
+  step: { gap: 8, paddingTop: 16, borderTopWidth: 2, borderTopColor: Colors.border },
   stepNumber: { fontFamily: BrandFont.extrabold, fontSize: 44, lineHeight: 48, color: Colors.accent, opacity: 0.3 },
   stepTitle: { fontFamily: BrandFont.bold, fontSize: 19, color: Colors.text },
   stepBody: { fontFamily: BrandFont.regular, fontSize: 15, lineHeight: 24, color: Colors.textSecondary },
@@ -576,7 +579,6 @@ const styles = StyleSheet.create({
   transform: { gap: 12, alignItems: 'center' },
   transformWide: { flexDirection: 'row', alignItems: 'stretch', gap: 16 },
   rawCard: {
-    flex: 1,
     width: '100%',
     backgroundColor: Colors.text,
     borderRadius: Radius.cardLarge,
@@ -586,6 +588,8 @@ const styles = StyleSheet.create({
   },
   rawLabel: { fontFamily: BrandFont.bold, fontSize: 11, letterSpacing: 1, color: '#9A9EB5', textTransform: 'uppercase' },
   rawText: { fontFamily: Fonts.mono, fontSize: 13, lineHeight: 22, color: '#D6D9E6' },
+  rawCardWide: { flex: 1 },
+  briefCardWide: { flex: 1.15 },
   transformArrow: {
     alignSelf: 'center',
     width: 40,
@@ -597,7 +601,6 @@ const styles = StyleSheet.create({
     boxShadow: SHADOW_SOFT,
   },
   briefCard: {
-    flex: 1.15,
     width: '100%',
     borderRadius: Radius.cardLarge,
     padding: 22,
@@ -613,9 +616,10 @@ const styles = StyleSheet.create({
   // ---- Share ----
   share: { gap: 40, alignItems: 'center' },
   shareWide: { flexDirection: 'row' },
-  shareCopy: { flex: 1, gap: 16, width: '100%' },
+  shareCopy: { gap: 16, width: '100%' },
+  shareCopyWide: { flex: 1 },
   shareBody: { fontFamily: BrandFont.regular, fontSize: 16, lineHeight: 26, color: Colors.textSecondary, maxWidth: 460 },
-  flow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  flow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 4 },
   flowChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -629,7 +633,6 @@ const styles = StyleSheet.create({
   },
   flowChipText: { fontFamily: BrandFont.semibold, fontSize: 14, color: Colors.text },
   postPreview: {
-    flex: 1,
     width: '100%',
     maxWidth: 420,
     backgroundColor: Colors.surface,
@@ -640,7 +643,7 @@ const styles = StyleSheet.create({
     gap: 12,
     boxShadow: SHADOW_GLOW,
   },
-  postPreviewTilt: { transform: [{ rotate: '-1.5deg' }] },
+  postPreviewTilt: { flex: 1, transform: [{ rotate: '-1.5deg' }] },
   postPreviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   postPreviewAvatar: {
     width: 38,
