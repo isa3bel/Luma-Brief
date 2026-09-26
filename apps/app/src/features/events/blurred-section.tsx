@@ -1,8 +1,9 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import type { PropsWithChildren } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Colors } from '@/constants/design';
+import { Colors, Radius } from '@/constants/design';
 
 // Gates the calendar section behind a blur until the user has resolved
 // (Went / Did Not Go) every pending past event, per the PRD. BlurView's web
@@ -17,7 +18,10 @@ export function BlurredSection({ locked, children }: PropsWithChildren<{ locked:
       {locked ? (
         <BlurView intensity={40} style={StyleSheet.absoluteFill}>
           <View style={styles.overlayContent}>
-            <Text style={styles.overlayText}>Resolve the events above to see your calendar</Text>
+            <View style={styles.lockBadge}>
+              <MaterialIcons name="lock-outline" size={20} color={Colors.accent} />
+            </View>
+            <Text style={styles.overlayText}>Review your past events above to unlock your calendar</Text>
           </View>
         </BlurView>
       ) : null}
@@ -30,7 +34,16 @@ const styles = StyleSheet.create({
   // own content now (not a flex-filling list), and RN views are relatively
   // positioned by default so the BlurView's absoluteFill below still sizes
   // itself to match without any extra styling.
-  container: {},
-  overlayContent: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  container: { borderRadius: Radius.card, overflow: 'hidden' },
+  overlayContent: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
+  lockBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 12px -2px rgba(23, 24, 27, 0.2)',
+  },
   overlayText: { fontSize: 14, color: Colors.text, fontWeight: '600', textAlign: 'center' },
 });

@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -28,15 +28,28 @@ function SwipeCard({
   event,
   onResolved,
   isTop,
+  depth,
 }: {
   event: Event;
   onResolved: (id: string, status: EventStatus) => void;
   isTop: boolean;
+  depth: number; // 0 = top card, 1 = next, 2 = the one behind that
 }) {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
+
+  // Cards behind the top one sit slightly smaller and lower, easing forward
+  // when the card in front is resolved — gives the stack depth instead of
+  // three identical rectangles overlapping.
+  const depthValue = useSharedValue(depth);
+  useEffect(() => {
+    depthValue.value = withTiming(depth, { duration: 220 });
+  }, [depth, depthValue]);
+  const depthStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: depthValue.value * 18 }, { scale: 1 - depthValue.value * 0.045 }],
+  }));
 
   const finishSwipe = useCallback(
     (status: EventStatus) => onResolved(event.id, status),
@@ -87,6 +100,7 @@ function SwipeCard({
   }));
 
   return (
+    <Animated.View style={[styles.cardWrapper, depthStyle]} pointerEvents={isTop ? 'auto' : 'none'}>
     <GestureDetector gesture={pan}>
       <Animated.View style={[styles.cardWrapper, cardStyle]}>
         <EventCard
@@ -117,6 +131,7 @@ function SwipeCard({
         ) : null}
       </Animated.View>
     </GestureDetector>
+    </Animated.View>
   );
 }
 
@@ -145,16 +160,19 @@ export function SwipeDeck({
             event={event}
             onResolved={onSwipe}
             isTop={indexFromBack === visible.length - 1}
+            depth={visible.length - 1 - indexFromBack}
           />
         ))}
     </View>
   );
 }
 
+// Extra bottom margin leaves room for the cards stacked behind the top one
+// (each sits 18px lower).
 const DECK_HEIGHT = 320;
 
 const styles = StyleSheet.create({
-  deck: { height: DECK_HEIGHT },
+  deck: { height: DECK_HEIGHT, marginBottom: 28 },
   cardWrapper: { ...StyleSheet.absoluteFill },
   // top: 68, not up at the same 12-52px band the corner buttons occupy —
   // the badge's own rotation (±12deg) pushes its rendered bounding box out
@@ -181,11 +199,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    boxShadow: '0 4px 12px -2px rgba(23, 24, 27, 0.2)',
   },
   cornerButtonLeft: { left: 12 },
   cornerButtonRight: { right: 12 },

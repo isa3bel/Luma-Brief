@@ -25,6 +25,9 @@ const DOT_COLOR: Partial<Record<EventStatus, string>> = {
   pending: StatusColors.pending.bg,
 };
 
+// 8-digit hex: the status color at ~12% alpha, for chip backgrounds.
+const tint = (hex: string) => `${hex}1F`;
+
 // Shared between the day picker modal and search results below — same row
 // shape, two different lists it can appear in.
 function EventRow({ event, onPress }: { event: Event; onPress: () => void }) {
@@ -112,6 +115,11 @@ export function CalendarView({ events }: { events: Event[] }) {
   const todayKey = dateKey(new Date());
   const monthLabel = monthDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
+  const now = new Date();
+  const isCurrentMonthShown =
+    monthDate.getFullYear() === now.getFullYear() && monthDate.getMonth() === now.getMonth();
+  const goToToday = () => setMonthDate(new Date(now.getFullYear(), now.getMonth(), 1));
+
   const goToMonth = (delta: number) =>
     setMonthDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
 
@@ -163,13 +171,31 @@ export function CalendarView({ events }: { events: Event[] }) {
       ) : (
         <>
           <View style={styles.header}>
-            <Pressable onPress={() => goToMonth(-1)} hitSlop={8} accessibilityLabel="Previous month">
-              <MaterialIcons name="chevron-left" size={24} color={Colors.text} />
-            </Pressable>
             <Text style={styles.monthLabel}>{monthLabel}</Text>
-            <Pressable onPress={() => goToMonth(1)} hitSlop={8} accessibilityLabel="Next month">
-              <MaterialIcons name="chevron-right" size={24} color={Colors.text} />
-            </Pressable>
+            <View style={styles.headerControls}>
+              {!isCurrentMonthShown ? (
+                <Pressable
+                  onPress={goToToday}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [styles.todayButton, pressed && styles.navPressed]}>
+                  <Text style={styles.todayButtonText}>Today</Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                onPress={() => goToMonth(-1)}
+                hitSlop={6}
+                accessibilityLabel="Previous month"
+                style={({ pressed }) => [styles.navButton, pressed && styles.navPressed]}>
+                <MaterialIcons name="chevron-left" size={22} color={Colors.text} />
+              </Pressable>
+              <Pressable
+                onPress={() => goToMonth(1)}
+                hitSlop={6}
+                accessibilityLabel="Next month"
+                style={({ pressed }) => [styles.navButton, pressed && styles.navPressed]}>
+                <MaterialIcons name="chevron-right" size={22} color={Colors.text} />
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.weekdayRow}>
@@ -203,7 +229,7 @@ export function CalendarView({ events }: { events: Event[] }) {
                     key={key}
                     onPress={() => openDayNarrow(date, dayEvents)}
                     disabled={dayEvents.length === 0}
-                    style={styles.cellNarrow}>
+                    style={[styles.cellNarrow, !isCurrentMonth && styles.cellOutside, isToday && styles.cellToday]}>
                     {dayNumber}
                     {dayEvents.length > 0 ? (
                       <View style={styles.dots}>
@@ -223,14 +249,20 @@ export function CalendarView({ events }: { events: Event[] }) {
               const overflowCount = dayEvents.length - visibleEvents.length;
 
               return (
-                <View key={key} style={styles.cellWide}>
+                <View
+                  key={key}
+                  style={[styles.cellWide, !isCurrentMonth && styles.cellOutside, isToday && styles.cellToday]}>
                   <View style={styles.cellWideHeader}>{dayNumber}</View>
                   <View style={styles.eventRows}>
                     {visibleEvents.map((event) => (
                       <Pressable
                         key={event.id}
                         onPress={() => router.push(`/dashboard/${event.id}`)}
-                        style={({ pressed }) => [styles.eventRow, pressed && styles.eventRowPressed]}>
+                        style={({ pressed }) => [
+                          styles.eventRow,
+                          { backgroundColor: tint(DOT_COLOR[event.status] ?? Colors.textSecondary) },
+                          pressed && styles.eventRowPressed,
+                        ]}>
                         <View
                           style={[styles.eventBar, { backgroundColor: DOT_COLOR[event.status] ?? Colors.textSecondary }]}
                         />
@@ -301,27 +333,60 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderInput,
-    borderRadius: Radius.sm,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    backgroundColor: Colors.surfaceMuted,
+    borderRadius: Radius.pill,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
-  searchInput: { flex: 1, fontSize: 14, color: Colors.text },
+  // outlineStyle: web-only, drops the browser's default focus rectangle
+  // since the pill itself is the visual container.
+  searchInput: { flex: 1, fontSize: 14, color: Colors.text, outlineStyle: 'none' as never },
   searchResults: { gap: 2 },
   emptySearchText: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', paddingVertical: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
-  monthLabel: { fontSize: 16, fontWeight: '700', minWidth: 160, textAlign: 'center', color: Colors.text },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  monthLabel: { fontSize: 20, fontWeight: '800', color: Colors.text },
+  headerControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  navButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: Colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navPressed: { opacity: 0.6 },
+  todayButton: {
+    height: 34,
+    paddingHorizontal: 14,
+    borderRadius: 17,
+    backgroundColor: Colors.accentTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  todayButtonText: { fontSize: 13, fontWeight: '700', color: Colors.accent },
   weekdayRow: { flexDirection: 'row' },
   weekdayLabel: {
     flexBasis: `${100 / 7}%`,
     textAlign: 'center',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     color: Colors.textSecondary,
     paddingBottom: 6,
   },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  // Rounded frame around the whole grid; the per-cell hairlines inside it
+  // stay, but the outer corners are clipped soft.
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    borderRadius: Radius.card,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+  },
+  cellOutside: { backgroundColor: Colors.surfaceMuted },
+  cellToday: { backgroundColor: Colors.accentTint },
 
   // Narrow (mobile) layout — dots only, no per-event rows (too thin for
   // readable title text). Deliberately NOT aspectRatio: 1 — square cells
@@ -348,21 +413,21 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
     paddingVertical: 4,
-    paddingHorizontal: 2,
+    paddingHorizontal: 3,
   },
   cellWideHeader: { alignItems: 'flex-end', paddingRight: 6, paddingBottom: 2 },
-  eventRows: { gap: 1 },
+  eventRows: { gap: 2 },
   eventRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     paddingHorizontal: 4,
-    paddingVertical: 1,
+    paddingVertical: 2,
     borderRadius: Radius.xs,
   },
-  eventRowPressed: { backgroundColor: Colors.accentTint },
+  eventRowPressed: { opacity: 0.6 },
   eventBar: { width: 3, height: 12, borderRadius: 2 },
-  eventRowText: { flex: 1, fontSize: 11, color: Colors.text },
+  eventRowText: { flex: 1, fontSize: 11, fontWeight: '600', color: Colors.text },
   moreRow: { paddingHorizontal: 4, paddingVertical: 1 },
   moreRowText: { fontSize: 11, color: Colors.textSecondary, fontWeight: '600' },
 
@@ -381,7 +446,7 @@ const styles = StyleSheet.create({
 
   legend: { flexDirection: 'row', gap: 16, justifyContent: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendLabel: { fontSize: 12, color: Colors.textSecondary },
+  legendLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
